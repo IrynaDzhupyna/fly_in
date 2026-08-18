@@ -2,6 +2,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
+class ZoneRole(Enum):
+    REGULAR = "regular"
+    START = "start"
+    END = "end"
+
 class ZoneType(Enum):
     NORMAL = "normal"
     BLOCKED = "blocked"
@@ -14,22 +19,15 @@ class ZoneType(Enum):
 
 
 @dataclass
-class Coordinates:
-    x: int
-    y: int
-
-
-@dataclass
-class Hub:
-    """A zone/hub in the drone network."""
+class Zone:
+    """A zone hub in the drone network."""
 
     name: str
-    coordinates: Coordinates
+    coordinates: tuple[int, int]
+    role: ZoneRole = ZoneRole.REGULAR
     type: ZoneType = ZoneType.NORMAL
     color: str | None = None
     max_drones: int = 1
-    # field(init=False): capacity is not part of __init__,
-    # the caller can't set it through the constructor
     capacity: int = field(default=0, init=False)
 
     def increase_capacity(self, drones_to_move: int = 1) -> bool:
@@ -46,13 +44,8 @@ class Hub:
             return True
         return False
 
-    def has_room(self, drones_to_move: int = 1) -> bool:
-        if self.type is ZoneType.BLOCKED:
-            return False
-        return self.capacity + drones_to_move <= self.max_drones
-
-    def hub_info(self) -> None:
-        print(f"Name: {self.name}\nCoordinates: {self.coordinates}")
+    def zone_info(self) -> None:
+        print(f"Name: {self.name}")
         print(f"Type: {self.type}\nColor: {self.color}")
         print(f"Max_drones: {self.max_drones}")
         print(f"Capacity: {self.capacity}")
