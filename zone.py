@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
+print("Hello from zone.py")
+
 class Zone_role(Enum):
     START = "start"
     END = "end"
@@ -24,6 +26,7 @@ class Coordinates:
     x: int
     y: int
 
+print("WSecond")
 
 @dataclass
 class Zone:
