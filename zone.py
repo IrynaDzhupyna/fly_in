@@ -60,30 +60,30 @@ class Zone:
         print(f"Capacity: {self.capacity}")
 
 
-coordinates = Coordinates(0, 0)
-hub = Zone("start", coordinates, "normal", None, 3)
-# 0
-hub.hub_info()
-print()
-hub.increase_capacity(3)
-hub.hub_info()
-print()
-# 3
-hub.increase_capacity(2)
-hub.hub_info()
-# # remove
-# # -1
-# print()
-# hub.decrease_capacity(1)
-# hub.hub_info()
-# # -1 
-# print()
-# hub.decrease_capacity(2)
-# hub.hub_info()
+if __name__ == "__main__":
 
-# # try to remove again
-# print()
-# hub.decrease_capacity(1)
-# hub.hub_info()
+    coordinates = Coordinates(0, 0)
+    hub = Zone("start", coordinates, "normal", None, 3)
+    # 0
+    hub.hub_info()
+    print()
+    hub.increase_capacity(3)
+    hub.hub_info()
+    print()
+    # 3
+    hub.increase_capacity(2)
+    hub.hub_info()
+    # # remove
+    # # -1
+    # print()
+    # hub.decrease_capacity(1)
+    # hub.hub_info()
+    # # -1 
+    # print()
+    # hub.decrease_capacity(2)
+    # hub.hub_info()
 
-
+    # # try to remove again
+    # print()
+    # hub.decrease_capacity(1)
+    # hub.hub_info()
