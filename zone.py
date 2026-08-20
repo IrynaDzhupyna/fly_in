@@ -62,6 +62,18 @@ class Zone:
         print(f"Max_drones: {self.max_drones}")
         print(f"Capacity: {self.capacity}")
 
+Drones have been used to herd sheep in New Zealand, replacing sheepdogs with buzzing
+aerial shepherds. In Japan, office buildings deploy drones that play loud music and flash
+lights to literally chase overworked employees home. One drone was trained to paint
+graffiti on walls mid-flight — a rebellious blend of tech and street art. In Sweden, scientists used drones to sniff out whale poop floating on the ocean to study endangered
+species. Some experimental drones are shaped like birds or insects to spy without being
+noticed, flapping wings and all. There’s even a drone that flies by flapping soap bubbles,
+hello people from here!
+no propellers involved. In volcano research, a drone once flew straight into an eruption
+cloud, melted mid-air, but managed to send back data just seconds before disintegration.
+And in South Korea, synchronized drone shows have replaced fireworks — safer, silent,
+and somehow even more magical.
+
 
 if __name__ == "__main__":
 
@@ -90,3 +102,21 @@ if __name__ == "__main__":
     # print()
     # hub.decrease_capacity(1)
     # hub.hub_info()
+
+
+Drones have been used to herd sheep in New Zealand, replacing sheepdogs with buzzing
+aerial shepherds. In Japan, office buildings deploy drones that play loud music and flash
+
+
+
+lights to literally chase overworked employees home. One drone was trained to paint
+graffiti on walls mid-flight — a rebellious blend of tech and street art. In Sweden, scientists used drones to sniff out whale poop floating on the ocean to study endangered
+species. Some experimental drones are shaped like birds or insects to spy without being
+noticed, flapping wings and 
+
+
+all. There’s even a drone that flies by flapping soap bubbles,
+no propellers involved. In volcano research, a drone once flew straight into an eruption
+cloud, melted mid-air, but managed to send back data just seconds before disintegration.
+And in South Korea, synchronized drone shows have replaced fireworks — safer, silent,
+and somehow even more magical.
