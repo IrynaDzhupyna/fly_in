@@ -1,42 +1,30 @@
-from dataclasses import dataclass, field
-
+from dataclasses import dataclass
+from zone import Zone
 
 @dataclass
 class Connection:
-    """A link between two zones that drones can travel across."""
+    """ Link between zone_a and zone_b"""
 
-    zone1: str
-    zone2: str
+    zone_a: Zone
+    zone_b: Zone
+    occupants: list [Zone]
     max_link_capacity: int = 1
-    # current number of drones using this connection right now
-    capacity: int = field(default=0, init=False)
 
-    def connects(self, zone_a: str, zone_b: str) -> bool:
-        """Return True if this connection links zone_a and zone_b (either order)."""
-        return {zone_a, zone_b} == {self.zone1, self.zone2}
+    def __post_init__(self) -> None:
+        if self.zone_a == self.zone_b:
+            raise ValueError("Start and finish should have different coordinates")
 
-    def other_end(self, zone: str) -> str:
-        """Given one end of the connection, return the other end."""
-        if zone == self.zone1:
-            return self.zone2
-        if zone == self.zone2:
-            return self.zone1
-        raise ValueError(f"{zone!r} is not part of this connection")
+        if self.max_link_capacity < 1:
+            raise ValueError("Max link capacity should be 1 or more")
 
-    def increase_capacity(self, drones_to_move: int = 1) -> bool:
-        """Try to add drones_to_move drones onto this connection. Returns success."""
-        if self.capacity + drones_to_move <= self.max_link_capacity:
-            self.capacity += drones_to_move
+    def connected(self, zone_a) -> bool:
+        pass
+
+    def another_end(self, zone) -> bool:
+        pass
+
+    def has_capacity(self) -> bool:
+        if self.occupants + 1 < self.max_link_capacity:
             return True
         return False
 
-    def decrease_capacity(self, drones_to_move: int = 1) -> bool:
-        """Try to remove drones_to_move drones from this connection. Returns success."""
-        if self.capacity - drones_to_move >= 0:
-            self.capacity -= drones_to_move
-            return True
-        return False
-
-    def connection_info(self) -> None:
-        print(f"{self.zone1} <-> {self.zone2}")
-        print(f"Capacity: {self.capacity}/{self.max_link_capacity}")

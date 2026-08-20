@@ -1,25 +1,41 @@
 from dataclasses import dataclass, field
+from enum import Enum
+from zone import Zone, Zone_type, Zone_role
+from connection import Connection
 
+
+class Drone_state(Enum):
+    """ Describes the state of drones"""
+
+    WAITING = "waiting"
+    ARRIVED = "arrived"
+    TRANSIT = "transit"
+    DELIVERED = "delivered"
 
 @dataclass
 class Drone:
-    """A single drone moving through the hub network."""
+    """ Singular drone moving through the net"""
 
     id: int
-    current_zone: str
-    path: list[str] = field(default_factory=list)
-    delivered: bool = False
+    state: Drone_state
+    available_zones: list[str]
+    current_zone: Zone
+    path: list[str] = field(default_factory=list, init=False)
     turns_taken: int = 0
 
-    def move_to(self, zone: str) -> None:
-        """Move the drone to a new zone and record the turn."""
+    def move_forward(self, zone) -> None:
         self.current_zone = zone
         self.path.append(zone)
         self.turns_taken += 1
 
-    def mark_delivered(self) -> None:
-        self.delivered = True
+    # should we have it?
+    def move_backwards(self) -> None:
+        pass
 
-    def drone_info(self) -> None:
-        status = "delivered" if self.delivered else "in transit"
-        print(f"D{self.id}: {status} at {self.current_zone} (turn {self.turns_taken})")
+    def mark_delivered(self) -> None:
+        if self.current_zone.role is Zone_role.END:
+            self.Drone_state = Drone_state.DELIVERED
+
+    def drone_info(self) -> str:
+        print(f"Drone: D{self.id}\nState: {self.state}"
+              f"Current zone: {self.current_zone}")

@@ -1,5 +1,6 @@
 SRC = .
 NAME = test.py
+MAP = /home/irdzhupy/Projects/Core/Rank_3/maps/easy/01_linear_path.txt
 
 run: install
 	poetry run python3 $(NAME)
