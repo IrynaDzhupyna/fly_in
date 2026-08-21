@@ -23,9 +23,9 @@ class Drone:
     path: list[str] = field(default_factory=list, init=False)
     turns_taken: int = 0
 
-    def move_forward(self, zone) -> None:
+    def move_forward(self, zone: Zone) -> None:
         self.current_zone = zone
-        self.path.append(zone)
+        self.path.append(zone.name)
         self.turns_taken += 1
 
     # should we have it?
@@ -34,8 +34,8 @@ class Drone:
 
     def mark_delivered(self) -> None:
         if self.current_zone.role is Zone_role.END:
-            self.Drone_state = Drone_state.DELIVERED
+            self.state = Drone_state.DELIVERED
 
-    def drone_info(self) -> str:
-        print(f"Drone: D{self.id}\nState: {self.state}"
+    def drone_info(self) -> None:
+        print(f"Drone: D{self.id}\nState: {self.state}\n"
               f"Current zone: {self.current_zone}")

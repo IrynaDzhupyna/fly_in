@@ -39,7 +39,7 @@ class Zone:
     occupants: int = field(default=0, init=False)
     connections: list[str] = field(default_factory=list, init=False)
 
-    def increase_capacity(self, drones_to_move) -> bool:
+    def increase_capacity(self, drones_to_move: int) -> bool:
         if self.type is Zone_type.BLOCKED:
             return False
         if self.occupants + drones_to_move < self.max_drones + 1:
@@ -47,23 +47,23 @@ class Zone:
             return True
         return False
 
-    def decrease_capacity(self, drones_to_move):
+    def decrease_capacity(self, drones_to_move: int) -> bool:
         if self.occupants - drones_to_move >= 0:
             self.occupants -= drones_to_move
             return True
         return False
 
-    def hub_info(self):
+    def hub_info(self) -> None:
         print(f"Name: {self.name}\nCoordinates: {self.coordinates}")
         print(f"Type: {self.type}\nColor: {self.color}")
         print(f"Max_drones: {self.max_drones}")
-        print(f"Capacity: {self.capacity}")
+        print(f"Occupants: {self.occupants}")
 
 
 if __name__ == "__main__":
 
     coordinates = Coordinates(0, 0)
-    hub = Zone("start", coordinates, "normal", None, 3)
+    hub = Zone(name="start", coordinates=coordinates, type=Zone_type.NORMAL, max_drones=3)
     # 0
     hub.hub_info()
     print()

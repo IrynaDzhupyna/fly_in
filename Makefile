@@ -1,18 +1,18 @@
 SRC = .
-NAME = test.py
-MAP = /home/irdzhupy/Projects/Core/Rank_3/maps/easy/01_linear_path.txt
+NAME = main.py
+MAP = maps/easy/01_linear_path.txt
 
 run: install
-	poetry run python3 $(NAME)
+	poetry run python3 $(NAME) $(MAP)
 
 install:
 	poetry install
 
 debug:
-	poetry run python -m pdb $(NAME) $(CONFIG)
+	poetry run python3 -m pdb $(NAME) $(MAP)
 
 clean:
-	rm -rf */__pycache__ .mypy_cache .pytest_cache
+	rm -rf __pycache__ */__pycache__ .mypy_cache .pytest_cache
 
 lint:
 	flake8 $(SRC)

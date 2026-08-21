@@ -17,14 +17,16 @@ class Connection:
         if self.max_link_capacity < 1:
             raise ValueError("Max link capacity should be 1 or more")
 
-    def connected(self, zone_a) -> bool:
-        pass
+    def connected(self, zone: Zone) -> bool:
+        return zone is self.zone_a or zone is self.zone_b
 
-    def another_end(self, zone) -> bool:
-        pass
+    def another_end(self, zone: Zone) -> Zone:
+        if zone is self.zone_a:
+            return self.zone_b
+        if zone is self.zone_b:
+            return self.zone_a
+        raise ValueError(f"'{zone.name}' is not part of this connection")
 
     def has_capacity(self) -> bool:
-        if self.occupants + 1 < self.max_link_capacity:
-            return True
-        return False
+        return len(self.occupants) < self.max_link_capacity
 
