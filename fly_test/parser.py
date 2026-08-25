@@ -22,7 +22,7 @@ class Parser(BaseModel):
             if line.startswith("#") or line is None:
                 continue
 
-            key, value = line.split(":", 1)
+            key, value = line.split(": ", 1)
             if key == "nb_drones":
                 self._parse_nb_drones(key, value)
             elif key == "connection":
@@ -39,13 +39,36 @@ class Parser(BaseModel):
             raise ParserError("For '{key}': can not convert '{value}' to int")
         if converted < 1:
             raise ParserError(f"{key} must be a positive int, got '{value}'")
+        else:
+            self.nb_drones = converted
 
 
-    def _parse_connection(self, data: str):
-        pass
+    def _parse_connection(self, key: str, value: str):
+        if value is None:
+            raise ParserError(f"Missing connecion zones: {key}")
+        elif "-" not in value:
+            raise ParserError(f"Invalid connection ormat: '{value}'")
+        
+        zone_a, zone_b = value.split("-")
+        if zone_a is None or zone_b is None:
+            raise ParserError(f"Connection references unknown zone(s): '{value}'")
+        
+        if zone_a == zone_b:
+            raise ParserError(f"Connection can not lint its zone to itself")
+        if "-" in zone_a or "-" in zone_b:
+            raise ParserError("The connection syntax forbids dashes in zone names.")
+        
+        
 
-    def _parse_zone(self, prefix: str, data: str):
-        pass
+    def _parse_zone(self, key: str, value: str):
+        name, x, y, rest = value.split(" ", 4)
+
+        if key is Zone_role.START:
+            Zone.name = name
+            Zone.coordinates = x, y
+            
+
+
 
     
             

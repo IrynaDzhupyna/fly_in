@@ -33,7 +33,8 @@ class Zone:
     name: str
     coordinates: Coordinates
 
-    color: str
+    # check if it is a single word str
+    color: str | None = None
     type: Zone_type = Zone_type.NORMAL
     # not sure about this one
     role: Zone_role = Zone_role.HUB
@@ -43,17 +44,22 @@ class Zone:
     has_connections_with: list[Connection]
 
     def add_occupants(self, drones_to_move: int) -> bool:
-        if self.type is Zone_type.BLOCKED:
+        if drones_to_move <= 0:
             return False
+        elif self.type is Zone_type.BLOCKED:
+            return False
+        
         if self.occupants + drones_to_move <= self.max_drones:
             self.occupants += drones_to_move
             return True
+        
         return False
 
     def remove_occupants(self, drones_to_move: int) -> bool:
-        if self.occupants - drones_to_move <= 0:
+        if self.occupants - drones_to_move >= 0:
             self.occupants -= drones_to_move
             return True
+        
         return False
 
     
