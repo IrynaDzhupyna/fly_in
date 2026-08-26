@@ -27,11 +27,13 @@ class Drone:
             self.mark_as_delivered()
 
     def move_backward(self) -> None:
+        if len(self.path) <= 1:
+            return
         self.path.pop()
         self.current_zone = self.path[-1]
 
     def mark_as_delivered(self) -> None:
-        self.status = "delivered"
+        self.status = Drone_status.DELIVERED
     
 
     

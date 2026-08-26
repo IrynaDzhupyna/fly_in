@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from connection import Connection
-
 class Zone_type(Enum):
     """Marks zone as one of four types"""
     NORMAL = "normal"
@@ -41,7 +39,6 @@ class Zone:
     max_drones: int = 1
     # int or list of drones?
     occupants: int = 0
-    has_connections_with: list[Connection]
 
     def add_occupants(self, drones_to_move: int) -> bool:
         if drones_to_move <= 0:

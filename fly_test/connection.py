@@ -22,7 +22,7 @@ class Connection:
         if drones_to_move <= 0:
             return False
         
-        if self.occupants + drones_to_move >= self.max_link_capacity:
+        if self.occupants + drones_to_move > self.max_link_capacity:
             return False
 
         return True
