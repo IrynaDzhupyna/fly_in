@@ -1,6 +1,6 @@
 SRC = .
-NAME = main.py
-MAP = maps/easy/01_linear_path.txt
+NAME = fly_in.py
+MAP = 01_linear_path.txt
 
 run: install
 	poetry run python3 $(NAME) $(MAP)
