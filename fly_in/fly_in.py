@@ -1,6 +1,7 @@
 import sys
 
 from parser import Parser, ParserError
+from simulation_engine import SimulationEngine
 
 
 def main() -> None:
@@ -8,7 +9,9 @@ def main() -> None:
         print("Usage: main.py <map_file>")
         return
 
-    parser = Parser(sys.argv[1])
+    file_name = sys.argv[1]
+
+    parser = Parser(file_name=file_name)
     try:
         graph = parser.parse()
     except ParserError as error:
@@ -19,6 +22,8 @@ def main() -> None:
           f"for {parser.nb_drones} drones (start={graph.start.name}, end={graph.end.name})")
 
     # we got the graph and need to activate simulation engine
+    simulation_engine = SimulationEngine(graph)
+    simulation_engine.run()
 
 
 if __name__ == "__main__":

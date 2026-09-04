@@ -39,6 +39,7 @@ class Parser(BaseModel):
 
     def parse(self) -> Graph:
         """ Parses lines from map file sets nb_drones and returns Graph"""
+
         for line_number, raw_line in enumerate(self._read_lines(), start=1):
             line = raw_line.strip()
             if not line or line.startswith("#"):
@@ -326,31 +327,31 @@ class Parser(BaseModel):
         )
 
 
-def main() -> None:
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <map_file>")
-        sys.exit(1)
+# def main() -> None:
+#     if len(sys.argv) != 2:
+#         print(f"Usage: {sys.argv[0]} <map_file>")
+#         sys.exit(1)
 
-    parser = Parser(file_name=sys.argv[1])
+#     parser = Parser()
 
-    try:
-        graph = parser.parse()
-    except ParserError as error:
-        print(f"Error: {error}", file=sys.stderr)
-        sys.exit(1)
+#     try:
+#         graph = parser.parse(sys.argv[1])
+#     except ParserError as error:
+#         print(f"Error: {error}", file=sys.stderr)
+#         sys.exit(1)
 
-    print(f"Number of drones: {parser.nb_drones}")
-    print(f"Zones: {list(graph.zones.keys())}")
-    print(f"Start: {graph.start.name}")
-    print(f"End: {graph.end.name}")
+#     print(f"Number of drones: {parser.nb_drones}")
+#     print(f"Zones: {list(graph.zones.keys())}")
+#     print(f"Start: {graph.start.name}")
+#     print(f"End: {graph.end.name}")
 
-    print("Connections:")
-    for connection in graph.connections:
-        print(
-            f"  {connection.zone_a.name} <-> "
-            f"{connection.zone_b.name}"
-        )
+#     print("Connections:")
+#     for connection in graph.connections:
+#         print(
+#             f"  {connection.zone_a.name} <-> "
+#             f"{connection.zone_b.name}"
+#         )
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

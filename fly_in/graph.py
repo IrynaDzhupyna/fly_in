@@ -18,3 +18,9 @@ class Graph:
             for connection in self.connections
             if zone_name in (connection.zone_a.name, connection.zone_b.name)
         ]
+
+    def neighbors(self, zone: Zone) -> list[tuple[Zone, Connection]]:
+        return [
+            (connection.another_end(zone), connection)
+            for connection in self.connections_for(zone.name)
+        ]
