@@ -19,7 +19,7 @@ def main() -> None:
         return
 
     print(f"Parsed {len(graph.zones)} zones and {len(graph.connections)} connections "
-          f"for {parser.nb_drones} drones (start={graph.start.name}, end={graph.end.name})")
+          f"for {graph.nb_drones} drones (start={graph.start.name}, end={graph.end.name})")
 
     # we got the graph and need to activate simulation engine
     simulation_engine = SimulationEngine(graph)

@@ -320,6 +320,7 @@ class Parser(BaseModel):
                 f"Expected exactly one end_hub, found {len(ends)}")
 
         return Graph(
+            nb_drones=self.nb_drones,
             zones=self.zones,
             connections=self.connections,
             start=starts[0],
