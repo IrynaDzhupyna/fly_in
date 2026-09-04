@@ -1,20 +1,40 @@
-# we got graph from parser
-# now we need to initialize the simulation engine with this graph
+from dataclasses import dataclass, field
 
+from graph import Graph
+from zone import Zone, Zone_role
+from connection import Connection
+from drone import Drone, Drone_state
+from coordinates import Coordinates
+
+@dataclass
 class SimulationEngine:
-    """ Simulation engine for running drone simulations.
-        Referee not strategist:
-        - turn counter
-        - the current occupancy of each zone and connection
-        - in-transit state of restricted zones moves
-        - which drones have been delivered"""
-    def __init__(self, graph):
-        self.graph = graph
+    """ Simulation engine for running drone simulations."""
+    graph: Graph
+    drones: list[Drone] = field(init=False, default_factory=list)
+    turn: int = 0
 
-    def run(self):
-        # Placeholder for simulation logic
-        print("Running simulation with the following graph:")
-        print(f"Zones: {len(self.graph.zones)}")
-        print(f"Connections: {len(self.graph.connections)}")
-        print(f"Start Zone: {self.graph.start.name}")
-        print(f"End Zone: {self.graph.end.name}")
+    def __post_init__(self) -> None:
+        """ Create drones at start"""
+        self.drones = []
+
+        for drone in range(1, self.graph.nb_drones + 1):
+            drone = Drone(
+                id=i,
+                state=Drone_state.WAITING,
+                current_zone=self.graph.start
+            )
+            self.drones.append(drone)
+
+    def run(self) -> None:
+        """ Run the simulation turn by turn until drones are delivered"""
+
+        while not self.all_drones_delivered():
+            self.turn += 1
+            pass  # TODO: implement the logic for each turn
+
+    def all_drones_delivered(self) -> bool:
+        """ Check if all drones have been delivered"""
+        return all(drone.state == Drone_state.DELIVERED for drone in self.drones)
+
+    
+

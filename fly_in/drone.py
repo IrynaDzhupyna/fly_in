@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from zone import Zone, Zone_type, Zone_role
+from zone import Zone, Zone_role
 from connection import Connection
 
 
@@ -18,7 +18,6 @@ class Drone:
 
     id: int
     state: Drone_state
-    available_zones: list[str]
     current_zone: Zone
     path: list[str] = field(default_factory=list, init=False)
     turns_taken: int = 0
@@ -27,10 +26,6 @@ class Drone:
         self.current_zone = zone
         self.path.append(zone.name)
         self.turns_taken += 1
-
-    # should we have it?
-    def move_backwards(self) -> None:
-        pass
 
     def mark_delivered(self) -> None:
         if self.current_zone.role is Zone_role.END:
