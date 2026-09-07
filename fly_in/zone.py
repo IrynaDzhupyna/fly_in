@@ -53,6 +53,15 @@ class Zone:
             return True
         return False
 
+    def has_capacity(self) -> bool:
+        """Checks if zone has capacity for one drone"""
+        if self.role is Zone_role.START or self.role is Zone_role.END:
+            return True
+        
+        if self.occupants + 1 <= self.max_drones:
+            return True
+        return False
+    
     def hub_info(self) -> None:
         print(f"Name: {self.name}\nCoordinates: {self.coordinates}")
         print(f"Type: {self.type}\nColor: {self.color}")

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from zone import Zone
+from drone import Drone
 
 @dataclass
 class Connection:
@@ -7,7 +8,8 @@ class Connection:
 
     zone_a: Zone
     zone_b: Zone
-    occupants: list [Zone]
+    # occupants sould be drones od drones ID not Zone
+    occupants: list [Drone]
     max_link_capacity: int = 1
 
     def __post_init__(self) -> None:

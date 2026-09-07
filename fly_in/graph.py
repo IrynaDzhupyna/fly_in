@@ -5,7 +5,8 @@ from connection import Connection
 
 @dataclass
 class Graph:
-    """ All zones and links, plus start and end"""
+    """ Describes the network.
+    All zones and links, plus start and end"""
 
     nb_drones: int
     zones: dict[str, Zone]

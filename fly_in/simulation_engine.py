@@ -8,7 +8,8 @@ from drone import Drone, Drone_state
 
 @dataclass
 class SimulationEngine:
-    """ Simulation engine for running drone simulations."""
+    """ Enforses the simulation rules.
+    Simulation engine for running drone simulations."""
 
     graph: Graph
     drones: list[Drone] = field(init=False, default_factory=list)
@@ -36,15 +37,40 @@ class SimulationEngine:
                 if drone.state is not Drone_state.DELIVERED:
                     self._process_drone(drone)
 
-    def _process_drone(self, drone: Drone) -> None:
-
+    def _process_drone(self, drone: Drone, next_zone: Zone) -> None:
+        # modify later
         neighbors = self.graph.neighbors(drone.current_zone)
-
+        
         for zone, connection in neighbors:
             if zone.type is Zone_type.BLOCKED:
                 continue
-            
 
+            if not zone.has_capacity():
+                continue
+
+            if not connection.has_capacity():
+                continue
+
+        pass
+
+    def _can_move_to(self, drone: Drone, zone: Zone, connection: Connection) -> bool:
+        """Checks if the turn is allowed"""
+
+        if zone.type is Zone_type.BLOCKED:
+            return False
+
+        if not zone.has_capacity():
+            return False
+
+        if not connection.has_capacity():
+            return False
+
+        return True
+
+        # movement cost 
+        # conflicts with other drones
+
+    # executes move OR makes drone wait
 
     # later we can separate drones that are delivered and others 
     def _all_drones_delivered(self) -> bool:
