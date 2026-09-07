@@ -7,8 +7,7 @@ from connection import Connection
 class Drone_state(Enum):
     """ Describes the state of drones"""
 
-    WAITING = "waiting"
-    ARRIVED = "arrived"
+    AVAILABLE = "available"
     TRANSIT = "transit"
     DELIVERED = "delivered"
 

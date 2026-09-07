@@ -21,8 +21,10 @@ class Graph:
             if zone_name in (connection.zone_a.name, connection.zone_b.name)
         ]
 
+    # where i got another_end() from?
     def neighbors(self, zone: Zone) -> list[tuple[Zone, Connection]]:
-        """ Returns a list of tuples (neighbor_zone, connection) for a given zone"""    
+        """ Returns a list of tuples (neighbor_zone, connection) for a given zone"""
+        
         return [
             (connection.another_end(zone), connection)
             for connection in self.connections_for(zone.name)

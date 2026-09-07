@@ -22,8 +22,10 @@ def main() -> None:
           f"for {graph.nb_drones} drones (start={graph.start.name}, end={graph.end.name})")
 
     # we got the graph and need to activate simulation engine
-    simulation_engine = SimulationEngine(graph)
-    simulation_engine.run()
+    engine = SimulationEngine(graph)
+    engine.info()
+
+    # engine.run()
 
 
 if __name__ == "__main__":
