@@ -17,8 +17,9 @@ class SimulationEngine:
 
 
     def __post_init__(self) -> None:
-        """Initiates the list of drones """
+        """Initiates the list of drones, add drone to start on each iteration"""
 
+        # initiate drones
         for i in range(1, self.graph.nb_drones + 1):
             drone = Drone(
                 id=i,
@@ -27,9 +28,12 @@ class SimulationEngine:
             )
 
             self.drones.append(drone)
+            # adds drone to start zone
+            self.graph.start.increase_capacity()
 
     def run(self) -> None:
         """Starts the engine"""
+        
         while not self._all_drones_delivered():
             self.turn += 1
 
@@ -42,15 +46,12 @@ class SimulationEngine:
         neighbors = self.graph.neighbors(drone.current_zone)
         
         for zone, connection in neighbors:
-            if zone.type is Zone_type.BLOCKED:
-                continue
+            # check if can be moved to
+            # self._can_move_to(drone: Drone, zone: Zone, connection: Connection)
+            pass
 
-            if not zone.has_capacity():
-                continue
-
-            if not connection.has_capacity():
-                continue
-
+    def _move_drone(self, drone: Drone, zone_from: Zone, zone_to: Zone) -> bool:
+        # move from/to zone.START/END
         pass
 
     def _can_move_to(self, drone: Drone, zone: Zone, connection: Connection) -> bool:

@@ -39,60 +39,62 @@ class Zone:
     occupants: int = field(default=0, init=False)
     connections: list[str] = field(default_factory=list, init=False)
 
-    def increase_capacity(self, drones_to_move: int) -> bool:
-        if self.type is Zone_type.BLOCKED:
-            return False
-        if self.occupants + drones_to_move < self.max_drones + 1:
-            self.occupants += drones_to_move
-            return True
-        return False
+    def increase_capacity(self) -> bool:
+        """Increases occupants by 1"""
 
-    def decrease_capacity(self, drones_to_move: int) -> bool:
-        if self.occupants - drones_to_move >= 0:
-            self.occupants -= drones_to_move
-            return True
-        return False
+        if not self.has_capacity():
+            return False
+        
+        self.occupants += 1
+        return True
+
+    def decrease_capacity(self) -> bool:
+        """Decreases occupants by 1"""
+        
+        return self.occupants -1 >= 0
 
     def has_capacity(self) -> bool:
         """Checks if zone has capacity for one drone"""
+
+        if self.type is Zone_type.BLOCKED:
+            return False
+        
         if self.role is Zone_role.START or self.role is Zone_role.END:
             return True
         
-        if self.occupants + 1 <= self.max_drones:
-            return True
-        return False
+        return self.occupants < self.max_drones
     
-    def hub_info(self) -> None:
-        print(f"Name: {self.name}\nCoordinates: {self.coordinates}")
-        print(f"Type: {self.type}\nColor: {self.color}")
-        print(f"Max_drones: {self.max_drones}")
-        print(f"Occupants: {self.occupants}")
+    # def hub_info(self) -> None:
+    #     print(f"Name: {self.name}\nCoordinates: {self.coordinates}")
+    #     print(f"Type: {self.type}\nColor: {self.color}")
+    #     print(f"Max_drones: {self.max_drones}")
+    #     print(f"Occupants: {self.occupants}")
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    coordinates = Coordinates(0, 0)
-    hub = Zone(name="start", coordinates=coordinates, type=Zone_type.NORMAL, max_drones=3)
-    # 0
-    hub.hub_info()
-    print()
-    hub.increase_capacity(3)
-    hub.hub_info()
-    print()
-    # 3
-    hub.increase_capacity(2)
-    hub.hub_info()
-    # # remove
-    # # -1
-    # print()
-    # hub.decrease_capacity(1)
-    # hub.hub_info()
-    # # -1 
-    # print()
-    # hub.decrease_capacity(2)
-    # hub.hub_info()
+#     coordinates = Coordinates(0, 0)
+#     hub = Zone(name="start", coordinates=coordinates, type=Zone_type.NORMAL, max_drones=3)
+#     # 0
+#     hub.hub_info()
+#     print()
+#     hub.increase_capacity(3)
+#     hub.hub_info()
+#     print()
+#     # 3
+#     hub.increase_capacity(2)
+#     hub.hub_info()
+#     # # remove
+#     # # -1
+#     # print()
+#     # hub.decrease_capacity(1)
+#     # hub.hub_info()
+#     # # -1 
+#     # print()
+#     # hub.decrease_capacity(2)
+#     # hub.hub_info()
 
-    # # try to remove again
-    # print()
-    # hub.decrease_capacity(1)
-    # hub.hub_info()
+#     # # try to remove again
+#     # print()
+#     # hub.decrease_capacity(1)
+#     # hub.hub_info()
