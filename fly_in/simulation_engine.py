@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from graph import Graph
-from zone import Zone, Zone_role, Zone_type
+from zone import Zone, Zone_role
 from connection import Connection
 from drone import Drone, Drone_state
 
@@ -45,8 +45,8 @@ class SimulationEngine:
 
             for drone in self.drones:
                 if drone.state is Drone_state.DELIVERED:
-                    continue
-
+                    # it we have > 1 drone it doesn't escape
+                    break
                 self._process_drone(drone)
                 self.info(drone)
 
@@ -60,7 +60,7 @@ class SimulationEngine:
             if not self._can_move_to(zone, connection):
                 continue
 
-            if zone is Zone_role.START:
+            if zone.role is Zone_role.START:
                 continue
 
             self._move_drone(drone, zone)
@@ -92,7 +92,7 @@ class SimulationEngine:
 
     def _all_drones_delivered(self) -> bool:
         """ Checks if every drone was delivered"""
-
+        # return all(drone.state is Drone_state.DELIVERED for drone in self.drones)
         for drone in self.drones:
             if drone.state is not Drone_state.DELIVERED:
                 return False

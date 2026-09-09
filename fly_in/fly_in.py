@@ -23,9 +23,8 @@ def main() -> None:
 
     # we got the graph and need to activate simulation engine
     engine = SimulationEngine(graph)
-    engine.info()
 
-    # engine.run()
+    engine.run()
 
 
 if __name__ == "__main__":

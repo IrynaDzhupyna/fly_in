@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from zone import Zone, Zone_role
-from connection import Connection
 
 
 class Drone_state(Enum):
