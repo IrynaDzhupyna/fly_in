@@ -1,6 +1,7 @@
+# now it installs all every time i run, but we need to check if all up to date - proceed
 SRC = .
 NAME = fly_in.py
-MAP = 01_linear_path.txt
+MAP = tester_one_turn.txt
 
 run: install
 	poetry run python3 $(NAME) $(MAP)

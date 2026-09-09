@@ -30,3 +30,8 @@ class Graph:
             (connection.another_end(zone), connection)
             for connection in self.connections_for(zone.name)
         ]
+
+    # remove when you don't need me
+    def info(self) -> None:
+        pass
+        
