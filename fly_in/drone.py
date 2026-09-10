@@ -25,6 +25,7 @@ class Drone:
         self.path.append(zone.name)
         self.turns_taken += 1
 
+    # what happens when drone moved but not delvered
     def mark_delivered(self) -> None:
         if self.current_zone.role is Zone_role.END:
             self.state = Drone_state.DELIVERED

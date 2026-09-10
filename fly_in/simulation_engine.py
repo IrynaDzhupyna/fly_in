@@ -41,14 +41,13 @@ class SimulationEngine:
             - repeat until all drones are delivered """
         
         while not self._all_drones_delivered():
-            self.turn += 1
 
             for drone in self.drones:
-                if drone.state is Drone_state.DELIVERED:
-                    # it we have > 1 drone it doesn't escape
-                    break
-                self._process_drone(drone)
-                self.info(drone)
+                if drone.state is not Drone_state.DELIVERED:
+                    self._process_drone(drone)
+                    self.info(drone)
+
+            self.turn += 1
 
     def _process_drone(self, drone: Drone) -> None:
         """Process one drone during the current turn."""
@@ -57,10 +56,17 @@ class SimulationEngine:
 
         # testing engine (movment decision)
         for zone, connection in neighbors:
-            if not self._can_move_to(zone, connection):
-                continue
+
+            print()
+            print(f"checking '{zone.name}' \n"
+                  f"occupants = {zone.occupants}\n"
+                  f"has_capacity = {zone.has_capacity()}\n"
+                  f"connection_capacity = {connection.has_capacity()}\n")
 
             if zone.role is Zone_role.START:
+                continue
+
+            if not self._can_move_to(zone, connection):
                 continue
 
             self._move_drone(drone, zone)
@@ -81,14 +87,15 @@ class SimulationEngine:
 
     def _move_drone(self, drone: Drone, zone_to: Zone) -> None:
         """ Executes one-turn movemet of drone from one zone to next"""
-        # now for one-turn movement only
 
-        zone_from = drone.current_zone
-
-        zone_from.decrease_capacity()
+        drone.current_zone.decrease_capacity()
         zone_to.increase_capacity()
         drone.move_forward(zone_to)
-        drone.mark_delivered()
+       
+
+        # this should be somewhere else
+        if zone_to.role is Zone_role.END:
+            drone.mark_delivered()
 
     def _all_drones_delivered(self) -> bool:
         """ Checks if every drone was delivered"""
@@ -97,7 +104,7 @@ class SimulationEngine:
             if drone.state is not Drone_state.DELIVERED:
                 return False
 
-        return True
+            return True
 
 
     # remove when it is not needed

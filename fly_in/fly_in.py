@@ -18,12 +18,19 @@ def main() -> None:
         print(f"Error: {error}")
         return
 
-    print(f"Parsed {len(graph.zones)} zones and {len(graph.connections)} connections "
+    print(f"\nParsed {len(graph.zones)} zones and {len(graph.connections)} connections "
           f"for {graph.nb_drones} drones (start={graph.start.name}, end={graph.end.name})")
 
     # we got the graph and need to activate simulation engine
     engine = SimulationEngine(graph)
+    print()
+    
+    for drone in engine.drones:
+        print(f"\nDron ID: {drone.id}")
+        print(f"Drone state: {drone.state}")
+        print(f"Current zone: {drone.current_zone.name}")
 
+    print()
     engine.run()
 
 

@@ -50,8 +50,12 @@ class Zone:
 
     def decrease_capacity(self) -> bool:
         """Decreases occupants by 1"""
+
+        if self.occupants - 1 >= 0:
+            self.occupants -= 1
+            return True
         
-        return self.occupants -1 >= 0
+        return False
 
     def has_capacity(self) -> bool:
         """Checks if zone has capacity for one drone"""
