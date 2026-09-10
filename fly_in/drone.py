@@ -7,7 +7,7 @@ class Drone_state(Enum):
     """ Describes the state of drones"""
 
     AVAILABLE = "available"
-    TRANSIT = "transit"
+    WAITING = "waiting"
     DELIVERED = "delivered"
 
 @dataclass

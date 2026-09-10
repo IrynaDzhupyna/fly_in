@@ -57,32 +57,33 @@ class SimulationEngine:
         # testing engine (movment decision)
         for zone, connection in neighbors:
 
-            print()
-            print(f"checking '{zone.name}' \n"
+            if zone.role is Zone_role.START:
+                continue
+
+            print(f"\nChecking '{zone.name}' \n\n"
                   f"occupants = {zone.occupants}\n"
                   f"has_capacity = {zone.has_capacity()}\n"
                   f"connection_capacity = {connection.has_capacity()}\n")
 
-            if zone.role is Zone_role.START:
-                continue
-
-            if not self._can_move_to(zone, connection):
+            if not self._can_move_to(zone, connection, drone):
                 continue
 
             self._move_drone(drone, zone)
-            break
+            return
+            
 
     def _can_move_to(self,
                      zone: Zone,
-                     connection: Connection) -> bool:
+                     connection: Connection,
+                     drone: Drone) -> bool:
         """Checks if the turn is allowed"""
 
-        if not zone.has_capacity():
+        if not zone.has_capacity() or not connection.has_capacity():
+            # mark drone as waiting
+            drone.state = Drone_state.WAITING
             return False
 
-        if not connection.has_capacity():
-            return False
-
+        drone.state = Drone_state.AVAILABLE
         return True
 
     def _move_drone(self, drone: Drone, zone_to: Zone) -> None:
@@ -104,7 +105,7 @@ class SimulationEngine:
             if drone.state is not Drone_state.DELIVERED:
                 return False
 
-            return True
+        return True
 
 
     # remove when it is not needed
