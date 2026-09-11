@@ -4,13 +4,13 @@ from graph import Graph
 
 
 class PathFinder:
-    """Finds valid route from start to end"""
+    """Finds valid route from start to end without
+    getting trapped in loops or blocked zones"""
 
     graph: Graph
-    # output: one path from START to END
 
-    def find_path(start: Zone, end: Zone):
-        queue = [start]
-        visited = []
-        came_from = []
-        
+    def find_path(self):
+        """Finds the path from start to end"""
+
+        start = graph.start
+        end = graph.end
