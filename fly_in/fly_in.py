@@ -2,6 +2,7 @@ import sys
 
 from parser import Parser, ParserError
 from simulation_engine import SimulationEngine
+from path_finder import PathFinder
 
 
 def main() -> None:
@@ -19,19 +20,23 @@ def main() -> None:
         return
 
     print(f"\nParsed {len(graph.zones)} zones and {len(graph.connections)} connections "
-          f"for {graph.nb_drones} drones (start={graph.start.name}, end={graph.end.name})")
+          f"for {graph.nb_drones} drones (start={graph.start.name}, end={graph.end.name})\n")
 
-    # we got the graph and need to activate simulation engine
-    engine = SimulationEngine(graph)
-    print()
+    #   activate simulation engine
+    # engine = SimulationEngine(graph)
+    # print()
     
-    for drone in engine.drones:
-        print(f"\nDron ID: {drone.id}")
-        print(f"Drone state: {drone.state}")
-        print(f"Current zone: {drone.current_zone.name}")
+    # for drone in engine.drones:
+    #     print(f"\nDron ID: {drone.id}")
+    #     print(f"Drone state: {drone.state}")
+    #     print(f"Current zone: {drone.current_zone.name}")
 
-    print()
-    engine.run()
+    # print()
+    # engine.run()
+    path_find = PathFinder(graph)
+    path = path_find.find_path()
+    for element in path:
+        print(element.name)
 
 
 if __name__ == "__main__":
