@@ -53,11 +53,10 @@ class PathFinder:
         current: Zone | None = end
         path: list[Zone] = []
 
-        while current:
+        while current is not None:
             path.append(current)
             current = come_from[current]
 
         path.reverse()
         return path
 
-    

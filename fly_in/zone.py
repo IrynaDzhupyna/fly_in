@@ -39,6 +39,9 @@ class Zone:
     occupants: int = field(default=0, init=False)
     connections: list[str] = field(default_factory=list, init=False)
 
+    def __hash__(self):
+        return hash(self.name)
+
     def increase_capacity(self) -> bool:
         """Increases occupants by 1"""
 

@@ -4,6 +4,7 @@ from graph import Graph
 from zone import Zone, Zone_role
 from connection import Connection
 from drone import Drone, Drone_state
+from path_finder import PathFinder
 
 
 @dataclass
@@ -14,6 +15,7 @@ class SimulationEngine:
     graph: Graph
     drones: list[Drone] = field(init=False, default_factory=list)
     turn: int = 0
+    path_finder: PathFinder
 
 
     def __post_init__(self) -> None:
@@ -39,17 +41,19 @@ class SimulationEngine:
             - engine executes legal move / drone waits
             - update drone, zone, connection state
             - repeat until all drones are delivered """
-        
+
+        path = self.path_finder.find_path()
+
         while not self._all_drones_delivered():
 
             for drone in self.drones:
                 if drone.state is not Drone_state.DELIVERED:
-                    self._process_drone(drone)
+                    self._process_drone(drone, path)
                     self.info(drone)
 
             self.turn += 1
 
-    def _process_drone(self, drone: Drone) -> None:
+    def _process_drone(self, drone: Drone, path: PathFinder) -> None:
         """Process one drone during the current turn."""
 
         neighbors = self.graph.neighbors(drone.current_zone)
