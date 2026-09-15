@@ -70,38 +70,3 @@ class Zone:
             return True
         
         return self.occupants < self.max_drones
-    
-    # def hub_info(self) -> None:
-    #     print(f"Name: {self.name}\nCoordinates: {self.coordinates}")
-    #     print(f"Type: {self.type}\nColor: {self.color}")
-    #     print(f"Max_drones: {self.max_drones}")
-    #     print(f"Occupants: {self.occupants}")
-
-
-# if __name__ == "__main__":
-
-#     coordinates = Coordinates(0, 0)
-#     hub = Zone(name="start", coordinates=coordinates, type=Zone_type.NORMAL, max_drones=3)
-#     # 0
-#     hub.hub_info()
-#     print()
-#     hub.increase_capacity(3)
-#     hub.hub_info()
-#     print()
-#     # 3
-#     hub.increase_capacity(2)
-#     hub.hub_info()
-#     # # remove
-#     # # -1
-#     # print()
-#     # hub.decrease_capacity(1)
-#     # hub.hub_info()
-#     # # -1 
-#     # print()
-#     # hub.decrease_capacity(2)
-#     # hub.hub_info()
-
-#     # # try to remove again
-#     # print()
-#     # hub.decrease_capacity(1)
-#     # hub.hub_info()

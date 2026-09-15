@@ -1,4 +1,4 @@
-import sys
+# import sys
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -62,6 +62,7 @@ class Parser(BaseModel):
 
     def _parse_line(self, line: str) -> None:
         """ Dispatch a line to the appropriate parser"""
+
         if ":" not in line:
             raise ParserError(f"Invalid line format: '{line}'")
         
@@ -81,6 +82,7 @@ class Parser(BaseModel):
 
     def _parse_nb_drones(self, line: str) -> None:
         """Parse the number of drones"""
+
         if self.nb_drones is not None:
             raise ParserError("'nb_drones' defined more than once")
         # nb_drones: 2
@@ -277,6 +279,7 @@ class Parser(BaseModel):
 
     def _parse_positive_int(self, value: str, field_name: str) -> int:
         """Parse a positive integer from metadata."""
+
         try:
             number = int(value)
         except ValueError as error:
@@ -326,33 +329,3 @@ class Parser(BaseModel):
             start=starts[0],
             end=ends[0],
         )
-
-
-# def main() -> None:
-#     if len(sys.argv) != 2:
-#         print(f"Usage: {sys.argv[0]} <map_file>")
-#         sys.exit(1)
-
-#     parser = Parser()
-
-#     try:
-#         graph = parser.parse(sys.argv[1])
-#     except ParserError as error:
-#         print(f"Error: {error}", file=sys.stderr)
-#         sys.exit(1)
-
-#     print(f"Number of drones: {parser.nb_drones}")
-#     print(f"Zones: {list(graph.zones.keys())}")
-#     print(f"Start: {graph.start.name}")
-#     print(f"End: {graph.end.name}")
-
-#     print("Connections:")
-#     for connection in graph.connections:
-#         print(
-#             f"  {connection.zone_a.name} <-> "
-#             f"{connection.zone_b.name}"
-#         )
-
-
-# if __name__ == "__main__":
-#     main()

@@ -10,7 +10,11 @@ class PathFinderError(Exception):
 @dataclass
 class PathFinder:
     """Finds valid route from start to end without
-    getting trapped in loops or blocked zones"""
+    getting trapped in loops or blocked zones
+    
+    One the end is reached it returns the path."""
+    
+    # BUT WHAT IF TWO/MORE PATHES ARE POSSIBLE
 
     graph: Graph
 
@@ -42,7 +46,6 @@ class PathFinder:
                 if zone in visited or zone.type is Zone_type.BLOCKED:
                     continue
 
-
                 queue.append(zone)
                 visited.add(zone)
                 come_from[zone] = current
@@ -54,6 +57,7 @@ class PathFinder:
         path: list[Zone] = []
 
         while current is not None:
+            
             path.append(current)
             current = come_from[current]
 

@@ -1,7 +1,7 @@
 import sys
 
 from parser import Parser, ParserError
-from simulation_engine import SimulationEngine
+# from simulation_engine import SimulationEngine
 from path_finder import PathFinder, PathFinderError
 
 
