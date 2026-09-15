@@ -1,4 +1,3 @@
-# now it installs all every time i run, but we need to check if all up to date - proceed
 SRC = .
 NAME = fly_in.py
 MAP = test_two_pathes.txt
