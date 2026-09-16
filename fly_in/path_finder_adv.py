@@ -98,8 +98,10 @@ class PathFinderAdv:
                     continue
 
     def info_paths(self) -> None:
-        # print("\n\n\n###")
-        # print(self.all_paths)
-        # print()
+
+        # debug with 2 ways:
+        #   import pdb; pdb.set_trace()
+        #   breakpoint()
+
         for path in self.all_paths:
             path.info_path()
