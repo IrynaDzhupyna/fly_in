@@ -1,6 +1,6 @@
 SRC = .
 NAME = fly_in.py
-MAP = test_two_pathes.txt
+MAP = 01_dead_end_trap.txt
 
 run: install
 	poetry run python3 $(NAME) $(MAP)

@@ -22,6 +22,7 @@ class Path():
 
         print()
         for zone in self.zones:
+
             print(zone.name)
 
         print(f"General cost: {self.cost}")
@@ -92,45 +93,13 @@ class PathFinderAdv:
                 queue_paths.append(new_path)
 
                 if current_zone is end_zone:
+
                     self.all_paths.append(path)
                     continue
 
-
     def info_paths(self) -> None:
-
+        # print("\n\n\n###")
+        # print(self.all_paths)
+        # print()
         for path in self.all_paths:
-            print(path.info_path())
-
-
-            # # proceed the path till the end
-            # queue_zones: deque[Zone] = deque([path.zones])
-            # visited: set[Zone] = [path.start]
-            # come_from: dict[Zone, Zone | None] = {path.start: None}
-
-            # while queue_zones:
-
-            #     current = queue_zones.popleft()
-
-            #     for zone, _connection in self.graph.neighbors(current):
-
-            #         if zone in visited or zone.type is Zone_type.BLOCKED:
-            #             continue
-
-            #         queue_zones.append(zone)
-            #         visited.add(zone)
-            #         come_from[zone] = current
-
-            # if end_zone not in visited:
-            #     raise PathFinderError("The path doesn't have 'end' zone")
-
-            # current_zone: Zone | None = end_zone
-            # path: list[Zone] = []
-
-            # while current_zone is not None:
-
-            #     path.append(current_zone)
-            #     current = come_from[current]
-
-            # path.reverse()
-            # self.all_paths.append(path)
-            # break
+            path.info_path()
