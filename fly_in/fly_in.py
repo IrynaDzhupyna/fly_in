@@ -2,7 +2,7 @@ import sys
 
 from parser import Parser, ParserError
 # from simulation_engine import SimulationEngine
-from path_finder import PathFinder, PathFinderError
+from path_finder_adv import PathFinderAdv, PathFinderError
 
 
 def main() -> None:
@@ -33,17 +33,16 @@ def main() -> None:
 
     # print()
     # engine.run()
-    path_find = PathFinder(graph)
+    path_find = PathFinderAdv(graph)
     try:
-        path = path_find.find_path()
+        paths = path_find.find_all_paths()
     except PathFinderError as error:
         print(f"Error: {error}")
         return
 
+    path_find.info_paths()
 
-    for element in path:
-        print(element.name)
-
+    
 
 if __name__ == "__main__":
     main()

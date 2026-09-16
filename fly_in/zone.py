@@ -70,3 +70,8 @@ class Zone:
             return True
         
         return self.occupants < self.max_drones
+
+    def info_zone(self) -> None:
+        print(f"Name: {self.name}")
+        print(f"Role: {self.role}")
+        print(f"Type: {self.type}")

@@ -18,6 +18,15 @@ class Path():
     cost: int
     moves: int
 
+    def info_path(self) -> None:
+
+        print()
+        for zone in self.zones:
+            print(zone.name)
+
+        print(f"General cost: {self.cost}")
+        print(f"General moves: {self.moves}\n")
+
 
 class PathFinderError(Exception):
     """Raises custom error for PathFinder class"""
@@ -41,65 +50,87 @@ class PathFinderAdv:
     def find_all_paths(self) -> None:
         """Finds all possible paths"""
 
+        start_zone = self.graph.start
+        end_zone = self.graph.end
+
+        # starting point of all paths
         start = Path(
-            zones=[self.graph.start],
+            zones=[start_zone],
             cost=0,
             moves=0
         )
 
-        queue: deque[Path] = deque([start])
+        # queue of all paths, only start at the beginning
+        queue_paths: deque[Path] = deque([start])
 
-        while queue:
+        while queue_paths:
 
-            path = queue.popleft()
-            
+            path = queue_paths.popleft()
+            current_zone = path.zones[-1]
 
-    # def find_path(self) -> Path:
-    #     """Finds one path"""
+            if current_zone is end_zone:
+                self.all_paths.append(path)
+                continue
 
-    #     start = self.graph.start
-    #     end = self.graph.end
+            for zone, _connection in self.graph.neighbors(current_zone):
 
-    #     queue: deque[Zone] = deque([start])
-    #     visited: set[Zone] = {start}
-    #     come_from: dict[Zone, Zone | None] = {start: None}
+                if zone in path.zones or zone.type is Zone_type.BLOCKED:
+                    continue
 
-    #     while queue:
+                # list concatenation V1
+                # new_path: Path = path.zones + [zone]
 
-    #         current = queue.popleft()
+                new_zones = path.zones.copy()
+                new_zones.append(zone)
 
-    #         for zone, _connection in self.graph.neighbors(current):
+                new_path = Path(
+                    zones=new_zones,
+                    cost=path.cost + zone.type.movement_cost,
+                    moves=path.moves + 1
+                )
 
-    #             if zone in visited or zone.type is Zone_type.BLOCKED:
-    #                 continue
-                
-    #             queue.append(zone)
-    #             visited.add(zone)
-    #             come_from[zone] = current
+                queue_paths.append(new_path)
 
-    #     if end not in come_from:
-    #         raise PathFinderError("The path doesn't have 'end'")
+                if current_zone is end_zone:
+                    self.all_paths.append(path)
+                    continue
 
-    #     current: Zone | None = end
-    #     valid_path: list[Zone] = []
 
-    #     while current is not None:
+    def info_paths(self) -> None:
 
-    #         valid_path.append(current)
-    #         current = come_from[current]
+        for path in self.all_paths:
+            print(path.info_path())
 
-    #     valid_path.reverse()
 
-    #     path = Path(
-    #         zones=valid_path,
-    #         cost=sum(
-    #             zone.type.movement_cost 
-    #             for zone in valid_path[1:]),
-    #         moves=len(valid_path) - 1
-    #     )
+            # # proceed the path till the end
+            # queue_zones: deque[Zone] = deque([path.zones])
+            # visited: set[Zone] = [path.start]
+            # come_from: dict[Zone, Zone | None] = {path.start: None}
 
-    #     # self.all_paths.append(path)
-    #     return path
+            # while queue_zones:
 
-    # def find_all_paths(self) -> None:
-    #     pass
+            #     current = queue_zones.popleft()
+
+            #     for zone, _connection in self.graph.neighbors(current):
+
+            #         if zone in visited or zone.type is Zone_type.BLOCKED:
+            #             continue
+
+            #         queue_zones.append(zone)
+            #         visited.add(zone)
+            #         come_from[zone] = current
+
+            # if end_zone not in visited:
+            #     raise PathFinderError("The path doesn't have 'end' zone")
+
+            # current_zone: Zone | None = end_zone
+            # path: list[Zone] = []
+
+            # while current_zone is not None:
+
+            #     path.append(current_zone)
+            #     current = come_from[current]
+
+            # path.reverse()
+            # self.all_paths.append(path)
+            # break
