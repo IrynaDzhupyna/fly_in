@@ -13,6 +13,7 @@ class Path():
     - Stores its zones
     - Knows the path capacity
     - Stores callculated by PathFinder costs """
+    
     zones: list[Zone]
     # capacity: int
     cost: int
@@ -20,7 +21,6 @@ class Path():
 
     def info_path(self) -> None:
 
-        print()
         for zone in self.zones:
 
             print(zone.name)
@@ -30,8 +30,9 @@ class Path():
 
 
 class PathFinderError(Exception):
-    """Raises custom error for PathFinder class"""
+    """Custom error for PathFinder class"""
     pass
+
 
 @dataclass
 class PathFinderAdv:
@@ -92,10 +93,40 @@ class PathFinderAdv:
 
                 queue_paths.append(new_path)
 
-                if current_zone is end_zone:
+    def find_best_paths(self) -> None:
+        """Decides which paths to use to move all drones
+        to end in fewest simulation turns"""
 
-                    self.all_paths.append(path)
-                    continue
+        # sorting by min cost
+        print("\nSORTING BY COST\n")
+        sorted_by_cost = sorted(self.all_paths, key=lambda path: path.cost)
+
+        for path in sorted_by_cost:
+            path.info_path()
+
+        print("\nSORTING BY MOVES\n")
+        sorted_by_move = sorted(sorted_by_cost, key=lambda path: path.moves)
+        for path in sorted_by_move:
+            path.info_path()
+        # calls: conflicted_zones(sorted_paths)
+
+    def conflicted_zones(self, sorted_paths: list[Path]) -> None:
+        """Compare best zones and detects shared/conflicted ones"""
+
+        conflicted: list[Zone] = []
+
+        # list of list -> list of set
+        # path_1, path_2
+
+        i = 0
+        
+        while sorted_paths:
+            path_a = sorted_paths[i]
+            path_b = sorted_paths[i + 1]
+
+
+
+
 
     def info_paths(self) -> None:
 

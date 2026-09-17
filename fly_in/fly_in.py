@@ -40,7 +40,8 @@ def main() -> None:
         print(f"Error: {error}")
         return
 
-    path_find.info_paths()
+    # path_find.info_paths()
+    path_find.find_best_paths()
 
     
 
