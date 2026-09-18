@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 from collections import deque
 
 from graph import Graph
-from zone import Zone, Zone_type
+from zone import Zone, Zone_type, Zone_role
 
 
 @dataclass
-class Path():
+class Path:
     """
     DATA OBJECT
     - Represents one discovered route
@@ -29,6 +29,13 @@ class Path():
         print(f"General moves: {self.moves}\n")
 
 
+@dataclass
+class PathConflict:
+    path_a: Path
+    path_b: Path
+    zones: list[Zone]
+
+
 class PathFinderError(Exception):
     """Custom error for PathFinder class"""
     pass
@@ -48,6 +55,7 @@ class PathFinderAdv:
 
     # what it returns
     all_paths: list[Path] = field(init=False, default_factory=list)
+    chosen_paths: list[Path] = field(init=False, default_factory=list)
 
     def find_all_paths(self) -> None:
         """Finds all possible paths"""
@@ -97,6 +105,8 @@ class PathFinderAdv:
         """Decides which paths to use to move all drones
         to end in fewest simulation turns"""
 
+        chosen_paths: list[Path] = []
+
         # sorting by min cost
         print("\nSORTING BY COST\n")
         sorted_by_cost = sorted(self.all_paths, key=lambda path: path.cost)
@@ -110,19 +120,38 @@ class PathFinderAdv:
             path.info_path()
         # calls: conflicted_zones(sorted_paths)
 
-    def conflicted_zones(self, sorted_paths: list[Path]) -> None:
-        """Compare best zones and detects shared/conflicted ones"""
+    def conflicting_paths(self, sorted_paths: list[Path]) -> list[PathConflict]:
+        """Compares zones in two paths and detects shared/conflicted ones"""
 
-        conflicted: list[Zone] = []
+        conflicts: list[PathConflict] = []
 
-        # list of list -> list of set
-        # path_1, path_2
-
-        i = 0
-        
-        while sorted_paths:
+        for i in range(len(sorted_paths)):
             path_a = sorted_paths[i]
-            path_b = sorted_paths[i + 1]
+
+            for j in range(i + 1, len(sorted_paths)):
+                path_b = sorted_paths[j]
+
+                shared_zones: list[Zone] = []
+
+                for zone_a in path_a.zones:
+                    for zone_b in path_b.zones:
+                        if zone_a == zone_b:
+                            if zone_a.role is Zone_role.START or zone_a.role is Zone_role.END:
+                                continue
+                            shared_zones.append(zone_a)
+
+                if not shared_zones:
+                    continue
+
+                new_conflict = PathConflict(path_a=path_a,
+                                            path_b=path_b,
+                                            zones=shared_zones)
+                conflicts.append(new_conflict)
+
+        return conflicts
+
+
+
 
 
 
