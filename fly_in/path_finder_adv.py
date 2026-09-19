@@ -20,9 +20,7 @@ class Path:
     moves: int
 
     def info_path(self) -> None:
-
         for zone in self.zones:
-
             print(zone.name)
 
         print(f"General cost: {self.cost}")
@@ -34,6 +32,15 @@ class PathConflict:
     path_a: Path
     path_b: Path
     zones: list[Zone]
+
+    def has_paths(self, path_1: Path, path_2: Path) -> bool:
+        paths = self.path_a, self.path_b
+        return path_1 in paths and path_2 in paths
+
+    def info_conflict(self) -> None:
+        print("\nCONFLICTED ZONES\n")
+        for zone in self.zones:
+            print(zone.name)
 
 
 class PathFinderError(Exception):
@@ -55,6 +62,7 @@ class PathFinderAdv:
 
     # what it returns
     all_paths: list[Path] = field(init=False, default_factory=list)
+    # empty now
     chosen_paths: list[Path] = field(init=False, default_factory=list)
 
     def find_all_paths(self) -> None:
@@ -63,14 +71,12 @@ class PathFinderAdv:
         start_zone = self.graph.start
         end_zone = self.graph.end
 
-        # starting point of all paths
         start = Path(
             zones=[start_zone],
             cost=0,
             moves=0
         )
 
-        # queue of all paths, only start at the beginning
         queue_paths: deque[Path] = deque([start])
 
         while queue_paths:
@@ -87,9 +93,6 @@ class PathFinderAdv:
                 if zone in path.zones or zone.type is Zone_type.BLOCKED:
                     continue
 
-                # list concatenation V1
-                # new_path: Path = path.zones + [zone]
-
                 new_zones = path.zones.copy()
                 new_zones.append(zone)
 
@@ -105,19 +108,52 @@ class PathFinderAdv:
         """Decides which paths to use to move all drones
         to end in fewest simulation turns"""
 
-        chosen_paths: list[Path] = []
-
-        # sorting by min cost
-        print("\nSORTING BY COST\n")
         sorted_by_cost = sorted(self.all_paths, key=lambda path: path.cost)
+
+        if not sorted_by_cost:
+            raise PathFinderError("No path from start to end found")
+
+        print("\nSORTED BY COST\n")
 
         for path in sorted_by_cost:
             path.info_path()
 
-        print("\nSORTING BY MOVES\n")
-        sorted_by_move = sorted(sorted_by_cost, key=lambda path: path.moves)
-        for path in sorted_by_move:
+        """ Filter non-conflicted paths from all and
+                stores them in a list from cheapest to more expencive"""
+
+        conflicts = self.conflicting_paths(sorted_by_cost)
+
+        for conf in conflicts:
+            conf.info_conflict()
+
+        self.chosen_paths = [sorted_by_cost[0]]
+
+        for path in sorted_by_cost[1:]:
+
+            has_conflict = False
+
+            for chosen in self.chosen_paths:
+
+                for conflict in conflicts:
+                    if conflict.has_paths(path, chosen):
+                        has_conflict = True
+                        break
+
+                if has_conflict:
+                    break
+
+            if not has_conflict:
+                self.chosen_paths.append(path)
+
+        print("\nBEST PATHS\n")
+        for path in self.chosen_paths:
             path.info_path()
+            
+
+        # print("\nSORTING BY MOVES\n")
+        # sorted_by_move = sorted(sorted_by_cost, key=lambda path: path.moves)
+        # for path in sorted_by_move:
+        #     path.info_path()
         # calls: conflicted_zones(sorted_paths)
 
     def conflicting_paths(self, sorted_paths: list[Path]) -> list[PathConflict]:
@@ -149,12 +185,6 @@ class PathFinderAdv:
                 conflicts.append(new_conflict)
 
         return conflicts
-
-
-
-
-
-
 
 
     def info_paths(self) -> None:
