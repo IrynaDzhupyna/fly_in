@@ -32,7 +32,7 @@ class PathAssignment:
     """Assigns a path to a number of drones 
     and calculates the number of turns it will take to finish"""
     path: Path
-    drones: int
+    drones: int = field(init=False, default=0)
     turns: int = field(init=False, default=0)
 
     def __post_init__(self) -> None:
@@ -47,7 +47,8 @@ class PathSet:
 
     def __post_init__(self) -> None:
         """Calculates the finishing turns of the set"""
-        self.finishing_turn = max(assignment.turns for assignment in self.assignments)
+        self.finishing_turn = max(
+            assignment.turns for assignment in self.assignments)
 
 
 @dataclass
@@ -225,3 +226,29 @@ class PathFinderAdv:
 
         for path in self.all_paths:
             path.info_path()
+
+
+    def drones_assignment(self) -> None:
+        # we need paths and nb_drones
+        # at the beginning assigned drones = 0
+        # start with shortest path, assigned_drone 1
+        # and culculate the turns
+
+        # for each new drone:
+        #   calculate total cost (cost + nb_drones - 1)
+        # if paths have the same tuns assign to smallest
+        assignments: list[PathAssignment] = []
+
+        for path in self.chosen_paths:
+            assignment = PathAssignment(path, 0)
+            assignments.append(assignment)
+
+        for i in range(1, self.graph.nb_drones):
+            for a in assignments:
+                a.turns = a.path.cost + a.drones + 1 - 1
+
+        smallest_assignment = min(assignments, key=lambda a: a.turns)
+        smallest_assignment.drones += 1
+
+        
+
