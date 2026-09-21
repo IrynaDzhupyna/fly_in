@@ -28,6 +28,29 @@ class Path:
 
 
 @dataclass
+class PathAssignment:
+    """Assigns a path to a number of drones 
+    and calculates the number of turns it will take to finish"""
+    path: Path
+    drones: int
+    turns: int = field(init=False, default=0)
+
+    def __post_init__(self) -> None:
+        """Calculates the number of turns it will take to finish"""
+        self.turns = self.path.cost + self.drones - 1
+
+
+@dataclass
+class PathSet:
+    assignments: list[PathAssignment]
+    finishing_turn: int = field(init=False, default=0)
+
+    def __post_init__(self) -> None:
+        """Calculates the finishing turns of the set"""
+        self.finishing_turn = max(assignment.turns for assignment in self.assignments)
+
+
+@dataclass
 class PathConflict:
     path_a: Path
     path_b: Path
@@ -106,7 +129,13 @@ class PathFinderAdv:
 
     def find_best_paths(self) -> None:
         """Decides which paths to use to move all drones
-        to end in fewest simulation turns"""
+        to end in fewest simulation turns
+        - sort paths by cost
+        - filter non-conflicted paths from all
+        - print debugging info"""
+
+        # one simple path: total_turns = path_cost + nb_drones - 1
+        # several independent: simulation_turns= max(each path's finishing turn)
 
         sorted_by_cost = sorted(self.all_paths, key=lambda path: path.cost)
 
@@ -126,6 +155,7 @@ class PathFinderAdv:
         for conf in conflicts:
             conf.info_conflict()
 
+        # non-conflicted paths
         self.chosen_paths = [sorted_by_cost[0]]
 
         for path in sorted_by_cost[1:]:
