@@ -15,7 +15,6 @@ class Path:
     - Stores callculated by PathFinder costs """
     
     zones: list[Zone]
-    # capacity: int
     cost: int
     moves: int
 
@@ -31,17 +30,25 @@ class Path:
 class PathAssignment:
     """Assigns a path to a number of drones 
     and calculates the number of turns it will take to finish"""
+
     path: Path
-    drones: int = field(init=False, default=0)
+    drones: int = 0
     turns: int = field(init=False, default=0)
 
     def __post_init__(self) -> None:
         """Calculates the number of turns it will take to finish"""
+        if self.drones == 0:
+            return
         self.turns = self.path.cost + self.drones - 1
+
+    def info_assignment(self) -> None:
+        print(f"Drones assigned: {self.drones}")
 
 
 @dataclass
 class PathSet:
+    """ Represents the set of paths with drones distribution"""
+
     assignments: list[PathAssignment]
     finishing_turn: int = field(init=False, default=0)
 
@@ -143,10 +150,10 @@ class PathFinderAdv:
         if not sorted_by_cost:
             raise PathFinderError("No path from start to end found")
 
-        print("\nSORTED BY COST\n")
+        # print("\nSORTED BY COST\n")
 
-        for path in sorted_by_cost:
-            path.info_path()
+        # for path in sorted_by_cost:
+        #     path.info_path()
 
         """ Filter non-conflicted paths from all and
                 stores them in a list from cheapest to more expencive"""
@@ -179,7 +186,8 @@ class PathFinderAdv:
         print("\nBEST PATHS\n")
         for path in self.chosen_paths:
             path.info_path()
-            
+
+        assignments = self.drones_assignment()
 
         # print("\nSORTING BY MOVES\n")
         # sorted_by_move = sorted(sorted_by_cost, key=lambda path: path.moves)
@@ -228,27 +236,30 @@ class PathFinderAdv:
             path.info_path()
 
 
-    def drones_assignment(self) -> None:
-        # we need paths and nb_drones
-        # at the beginning assigned drones = 0
-        # start with shortest path, assigned_drone 1
-        # and culculate the turns
+    def drones_assignment(self) -> list[PathAssignment]:
+        """ Distributes drones between paths"""
 
-        # for each new drone:
-        #   calculate total cost (cost + nb_drones - 1)
-        # if paths have the same tuns assign to smallest
         assignments: list[PathAssignment] = []
 
         for path in self.chosen_paths:
-            assignment = PathAssignment(path, 0)
+            assignment = PathAssignment(path)
             assignments.append(assignment)
 
-        for i in range(1, self.graph.nb_drones):
+        # distribution
+        for i in range(1, self.graph.nb_drones + 1):
             for a in assignments:
-                a.turns = a.path.cost + a.drones + 1 - 1
+                a.turns = a.path.cost + a.drones
 
-        smallest_assignment = min(assignments, key=lambda a: a.turns)
-        smallest_assignment.drones += 1
+            smallest_assignment = min(assignments, key=lambda a: a.turns)
+            smallest_assignment.drones += 1
+
+        # finalization
+        for a in assignments:
+            if a.drones == 0:
+                continue
+            a.turns = a.path.cost + a.drones - 1
+
+        return assignments
 
         
 

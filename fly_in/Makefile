@@ -1,9 +1,9 @@
 SRC = .
 NAME = fly_in.py
-MAP = test_two_pathes.txt
+CUSTOM_MAP = test_two_pathes.txt
 
 run: install
-	poetry run python3 $(NAME) $(MAP)
+	poetry run python3 $(NAME) $(CUSTOM_MAP)
 
 easy:
 	poetry run python3 $(NAME) 01_linear_path.txt
@@ -13,6 +13,9 @@ medium:
 
 hard:
 	poetry run python3 $(NAME) 01_dead_end_trap.txt
+
+challenger:
+	poetry run python3 $(NAME) 01_the_impossible_dream.txt
 
 install:
 	poetry install
