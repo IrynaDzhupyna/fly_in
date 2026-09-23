@@ -11,13 +11,13 @@ class Path:
     DATA OBJECT
     - Represents one discovered route
     - Stores its zones
-    - Knows the path capacity
     - Stores callculated by PathFinder costs """
     
     zones: list[Zone]
     cost: int
     moves: int
 
+    # REMOVE ME
     def info_path(self) -> None:
         for zone in self.zones:
             print(zone.name)
@@ -33,21 +33,24 @@ class PathAssignment:
 
     path: Path
     drones: int = 0
-    turns: int = field(init=False, default=0)
 
-    def __post_init__(self) -> None:
-        """Calculates the number of turns it will take to finish"""
+    @property
+    def turns(self) -> int:
+        """Calculates the turns for assigned drones"""
+
         if self.drones == 0:
-            return
-        self.turns = self.path.cost + self.drones - 1
-
+            return 0
+        
+        return self.path.cost + self.drones - 1
+    
     def info_assignment(self) -> None:
         print(f"Drones assigned: {self.drones}")
 
 
 @dataclass
 class PathSet:
-    """ Represents the set of paths with drones distribution"""
+    """ Represents the set of paths (without conflicts)
+    with drones distribution"""
 
     assignments: list[PathAssignment]
     finishing_turn: int = field(init=False, default=0)
@@ -90,7 +93,6 @@ class PathFinderAdv:
 
     # what it needs
     graph: Graph
-
     # what it returns
     all_paths: list[Path] = field(init=False, default_factory=list)
     # empty now
@@ -142,21 +144,13 @@ class PathFinderAdv:
         - filter non-conflicted paths from all
         - print debugging info"""
 
-        # one simple path: total_turns = path_cost + nb_drones - 1
-        # several independent: simulation_turns= max(each path's finishing turn)
-
         sorted_by_cost = sorted(self.all_paths, key=lambda path: path.cost)
 
         if not sorted_by_cost:
             raise PathFinderError("No path from start to end found")
 
-        # print("\nSORTED BY COST\n")
-
-        # for path in sorted_by_cost:
-        #     path.info_path()
-
         """ Filter non-conflicted paths from all and
-                stores them in a list from cheapest to more expencive"""
+                stores them in a list from cheapest to more expensive"""
 
         conflicts = self.conflicting_paths(sorted_by_cost)
 
@@ -183,11 +177,17 @@ class PathFinderAdv:
             if not has_conflict:
                 self.chosen_paths.append(path)
 
-        print("\nBEST PATHS\n")
-        for path in self.chosen_paths:
-            path.info_path()
+        # print("\nBEST PATHS\n")
+        # for path in self.chosen_paths:
+        #     path.info_path()
 
         assignments = self.drones_assignment()
+        # for a in assignments:
+        #     print(a.drones)
+        #     print(a.turns)
+
+        path_set = PathSet(assignments=assignments)
+        print(path_set.finishing_turn)
 
         # print("\nSORTING BY MOVES\n")
         # sorted_by_move = sorted(sorted_by_cost, key=lambda path: path.moves)
@@ -246,18 +246,13 @@ class PathFinderAdv:
             assignments.append(assignment)
 
         # distribution
-        for i in range(1, self.graph.nb_drones + 1):
-            for a in assignments:
-                a.turns = a.path.cost + a.drones
+        for _ in range(self.graph.nb_drones):
 
-            smallest_assignment = min(assignments, key=lambda a: a.turns)
+            smallest_assignment = min(
+                assignments,
+                key=lambda a: a.path.cost + a.drones
+                )
             smallest_assignment.drones += 1
-
-        # finalization
-        for a in assignments:
-            if a.drones == 0:
-                continue
-            a.turns = a.path.cost + a.drones - 1
 
         return assignments
 

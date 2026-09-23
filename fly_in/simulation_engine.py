@@ -4,7 +4,7 @@ from graph import Graph
 from zone import Zone, Zone_role
 from connection import Connection
 from drone import Drone, Drone_state
-from path_finder import PathFinder
+from path_finder_adv import PathFinderAdv
 
 
 @dataclass
@@ -14,8 +14,8 @@ class SimulationEngine:
 
     graph: Graph
     drones: list[Drone] = field(init=False, default_factory=list)
-    turn: int = 0
-    path_finder: PathFinder
+    turn: int = field(init=False, default=0)
+    path_finder: PathFinderAdv
 
 
     def __post_init__(self) -> None:
@@ -53,7 +53,7 @@ class SimulationEngine:
 
             self.turn += 1
 
-    def _process_drone(self, drone: Drone, path: PathFinder) -> None:
+    def _process_drone(self, drone: Drone, path: PathFinderAdv) -> None:
         """Process one drone during the current turn."""
 
         neighbors = self.graph.neighbors(drone.current_zone)
