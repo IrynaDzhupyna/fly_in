@@ -14,8 +14,9 @@ end_hub: end 1 2
 connection: start-A
 connection: A-B
 connection: B-end
-connection: start-C 
-connection: C-D
+connection: start-C
+connection: C-B
+connection: B-D
 connection: D-E
 connection: E-G
 connection: G-H

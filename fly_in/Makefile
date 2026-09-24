@@ -1,6 +1,6 @@
 SRC = .
 NAME = fly_in.py
-CUSTOM_MAP = test_two_pathes.txt
+CUSTOM_MAP = test_two_paths.txt
 
 run: install
 	poetry run python3 $(NAME) $(CUSTOM_MAP)
