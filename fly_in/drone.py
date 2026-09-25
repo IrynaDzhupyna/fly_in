@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
+
 from zone import Zone, Zone_role
 
 
@@ -8,6 +9,7 @@ class Drone_state(Enum):
 
     AVAILABLE = "available"
     WAITING = "waiting"
+    IN_TRANSIT = "in_transit"
     DELIVERED = "delivered"
 
 @dataclass
@@ -17,6 +19,8 @@ class Drone:
     id: int
     state: Drone_state
     current_zone: Zone
+    # path stores the zones drone came from(history)
+    # we can remove it later
     path: list[str] = field(default_factory=list, init=False)
     turns_taken: int = 0
 

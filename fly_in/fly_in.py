@@ -2,7 +2,7 @@ import sys
 
 from parser import Parser, ParserError
 from simulation_engine import SimulationEngine
-from path_finder_adv import PathFinderAdv, PathFinderError
+from path_finder import PathFinder, PathFinderError
 
 
 def main() -> None:
@@ -21,34 +21,18 @@ def main() -> None:
         print(f"Error: {error}")
         return
     # path finder
-    path_finder = PathFinderAdv(graph)
+    path_finder = PathFinder(graph)
     try:
-        paths = path_finder.find_all_paths()
+        best_path_set = path_finder.run()
     except PathFinderError as error:
         print(f"Error: {error}")
         return
 
-    # path_find.info_paths()
-    path_finder.find_best_paths()
-    engine = SimulationEngine(graph, path_finder)
+    # engine = SimulationEngine(graph, best_path_set)
+    # engine.run()
+    visual = GameView()
 
     
 
 if __name__ == "__main__":
     main()
-
-
-# print(f"\nParsed {len(graph.zones)} zones and {len(graph.connections)} connections "
-#       f"for {graph.nb_drones} drones (start={graph.start.name}, end={graph.end.name})\n")
-
-#   activate simulation engine
-# engine = SimulationEngine(graph)
-# print()
-
-# for drone in engine.drones:
-#     print(f"\nDron ID: {drone.id}")
-#     print(f"Drone state: {drone.state}")
-#     print(f"Current zone: {drone.current_zone.name}")
-
-# print()
-# engine.run()

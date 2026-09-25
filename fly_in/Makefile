@@ -1,9 +1,10 @@
 SRC = .
 NAME = fly_in.py
-CUSTOM_MAP = test_two_paths.txt
+CUSTOM_MAP = test_branching_conflicts.txt
+VISUAL = visualization.py
 
 run: install
-	poetry run python3 $(NAME) $(CUSTOM_MAP)
+	poetry run python3 $(NAME) $(CUSTOM_MAP) $(VISUAL)
 
 easy:
 	poetry run python3 $(NAME) 01_linear_path.txt

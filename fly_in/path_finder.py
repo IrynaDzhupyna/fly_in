@@ -123,23 +123,43 @@ class PathFinder:
         
         # build valid combinations between paths
             # valid combination - group of paths without conflicts
-        combinations = self._build_valid_combinations(
+        combinations: list[list[Path]] = self._build_valid_combinations(
             sorted_by_cost, conflicts)
-        
-        print("\nBEST PATHS\n")
-        for path in combinations:
-            path.info_path()
 
-        # allocate drones
-        drone_assignment = self._drones_assignment(combinations)
+        print("\nVALID COMBINATIONS\n")
 
-        print("\nASSIGN DRONES TO BEST PATHS\n")
-        for a in drone_assignment:
-                print(f"Drones: {a.drones}")
-                print(f"Turns taken: {a.turns}")
-         
+        for i, comb in enumerate(combinations):
+            print(f"--- COMBINATION {i} ---")
+
+            for path in comb:
+                path.info_path()
+
+        # allocate drones and create PathSets
+        sets: list[PathSet] = []
+
+        for comb in combinations:
+
+            path_set = PathSet(
+                self._drones_assignment(comb)
+            )
+            sets.append(path_set)
+
+
+        print("\nPATH SETS\n")
+        for path_set in sets:
+            print(f"Finishing turns: {path_set.finishing_turn}")
+
+            for assignment in path_set.assignments:
+                print(f"Drones: {assignment.drones}")
+                print(f"Turns: {assignment.turns}\n")
+
         # compare the resulting PathSets
-        # return the best PathSet
+
+        best_path_set = min(sets, key=lambda pathset: pathset.finishing_turn)
+        print(best_path_set.finishing_turn)
+
+        # return best_path_set
+        return best_path_set
 
     def _find_all_paths(self) -> list[Path]:
         """Finds all possible paths in a graph"""
@@ -217,42 +237,36 @@ class PathFinder:
                                   conflicts: list[PathConflict]) -> list[list[Path]]:
         """Create all useful non-conflicted path combinations"""
 
-        # now it is only one combination but we need all possible
-
-        # valid_combination = [sorted_by_cost[0]]
-
-        # for path in sorted_by_cost[1:]:
-
-        #     has_conflict = any(
-        #         conflict.has_paths(path, chosen)
-        #         for chosen in valid_combination
-        #         for conflict in conflicts
-        #     )
-                    
-        #     if not has_conflict:
-        #         valid_combination.append(path)
-
-        # return valid_combination
-
-        all_valid_sets: list[list[Path]] = []
-        valid_combination: list[Path] = []
+        # branching combinations
+        # take a or skip?
+        valid_combinations: list[list[Path]] = [[]]
 
         for path in sorted_by_cost:
+            for combination in valid_combinations.copy():
 
-            has_conflict = any(
-                conflict.has_paths(path, chosen)
-                for chosen in valid_combination
-                for conflict in conflicts
+                has_conflict = any(
+                    conflict.has_paths(path, chosen)
+                    for chosen in combination
+                    for conflict in conflicts
                 )
-            if not has_conflict:
-                valid_combination.append(path)
 
-    def _drones_assignment(self, chosen: list[Path]) -> list[PathAssignment]:
+                if not has_conflict:
+                    new_combination = combination.copy()
+                    new_combination.append(path)
+                    
+                    valid_combinations.append(new_combination)
+
+        return valid_combinations[1:]
+
+
+
+    def _drones_assignment(
+            self, combination: list[Path]) -> list[PathAssignment]:
         """ Distributes drones between paths"""
 
         assignments: list[PathAssignment] = []
 
-        for path in chosen:
+        for path in combination:
             assignment = PathAssignment(path)
             assignments.append(assignment)
 
@@ -268,33 +282,33 @@ class PathFinder:
         return assignments
 
 
-import sys
+# import sys
 
-from parser import Parser, ParserError
-from path_finder import PathFinder, PathFinderError
+# from parser import Parser, ParserError
+# from path_finder import PathFinder, PathFinderError
 
 
-def main() -> None:
+# def main() -> None:
 
-    file_name = "test_two_paths.txt"
+#     file_name = "test_two_paths.txt"
 
-    parser = Parser(file_name=file_name)
-    try:
-        graph = parser.parse()
-    except ParserError as error:
-        print(f"Error: {error}")
-        return
+#     parser = Parser(file_name=file_name)
+#     try:
+#         graph = parser.parse()
+#     except ParserError as error:
+#         print(f"Error: {error}")
+#         return
     
-    path_finder = PathFinder(graph)
-    try:
-        path_finder.run()
-    except PathFinderError as error:
-        print(f"Error: {error}")
-        return
+#     path_finder = PathFinder(graph)
+#     try:
+#         path_finder.run()
+#     except PathFinderError as error:
+#         print(f"Error: {error}")
+#         return
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 
 
