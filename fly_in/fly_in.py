@@ -3,6 +3,7 @@ import sys
 from parser import Parser, ParserError
 from simulation_engine import SimulationEngine
 from path_finder import PathFinder, PathFinderError
+from visualization import Window, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE
 
 
 def main() -> None:
@@ -30,9 +31,9 @@ def main() -> None:
 
     # engine = SimulationEngine(graph, best_path_set)
     # engine.run()
-    visual = GameView()
+    visual = Window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, graph)
+    visual.run()
 
-    
 
 if __name__ == "__main__":
     main()
