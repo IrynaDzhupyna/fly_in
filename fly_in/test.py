@@ -1,5 +1,4 @@
-x = -10
-x = x >> 10
+from color import Color
 
-
-print(x)
+c = Color("blue")
+print(c)

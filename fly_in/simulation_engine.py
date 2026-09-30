@@ -11,8 +11,7 @@ from path_finder import Path, PathSet
 class DroneRoute:
     drone: Drone
     path: Path
-    # drone has .current_zone so I am not sure it is needed
-    position: int
+    position: int = 0
 
 
 @dataclass
@@ -24,7 +23,14 @@ class SimulationEngine:
     path_set: PathSet
 
     drones: list[Drone] = field(init=False, default_factory=list)
+    drone_routes: list[DroneRoute] = field(
+        init=False, 
+        default_factory=list)
     turn: int = field(init=False, default=0)
+    
+    @property
+    def is_finished(self) -> bool:
+        return self._all_drones_delivered()
 
 
     def __post_init__(self) -> None:
@@ -42,6 +48,20 @@ class SimulationEngine:
             # adds drone to start zone
             self.graph.start.increase_capacity()
 
+        drone_index = 0
+
+        for assignment in self.path_set.assignments:
+            for _ in range(assignment.drones):
+                drone = self.drones[drone_index]
+
+                route = DroneRoute(
+                    drone=drone,
+                    path=assignment.path
+                )
+
+                self.drone_routes.append(route)
+                drone_index += 1
+
     def run(self) -> None:
         """
             - manage turns
@@ -52,36 +72,42 @@ class SimulationEngine:
             - repeat until all drones are delivered """
 
         while not self._all_drones_delivered():
+            self.run_turn()
 
-            for drone in self.drones:
-                if drone.state is not Drone_state.DELIVERED:
-                    self._process_drone(drone, self.path_set)
-                    self.info(drone)
+    def run_turn(self) -> None:
+        """Runs one turn of the simulation."""
 
-            self.turn += 1
+        for route in self.drone_routes:
 
-    def _process_drone(self, drone: Drone, path: PathSet) -> None:
+            drone = route.drone
+
+            if drone.state is not Drone_state.DELIVERED:
+                self._process_drone(route)
+                self.info(drone)
+
+        self.turn += 1
+
+    def _process_drone(self, route: DroneRoute) -> None:
         """Process one drone during the current turn."""
+
+        # REVIEW ME
+        drone = route.drone
+
+        next_zone = route.path.zones[route.position + 1]
 
         neighbors = self.graph.neighbors(drone.current_zone)
 
-        # testing engine (movment decision)
         for zone, connection in neighbors:
 
-            if zone.role is Zone_role.START:
+            if zone is not next_zone:
                 continue
 
-            print(f"\nChecking '{zone.name}' \n\n"
-                  f"occupants = {zone.occupants}\n"
-                  f"has_capacity = {zone.has_capacity()}\n"
-                  f"connection_capacity = {connection.has_capacity()}\n")
+            if not self._can_move_to(next_zone, connection, drone):
+                return
 
-            if not self._can_move_to(zone, connection, drone):
-                continue
-
-            self._move_drone(drone, zone)
+            self._move_drone(drone, next_zone)
+            route.position += 1
             return
-            
 
     def _can_move_to(self,
                      zone: Zone,
@@ -110,8 +136,8 @@ class SimulationEngine:
             drone.mark_delivered()
 
     def _all_drones_delivered(self) -> bool:
-        """ Checks if every drone was delivered"""
-        # return all(drone.state is Drone_state.DELIVERED for drone in self.drones)
+        """ Returns 'True' if every drone was delivered"""
+
         for drone in self.drones:
             if drone.state is not Drone_state.DELIVERED:
                 return False

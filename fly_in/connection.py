@@ -13,6 +13,7 @@ class Connection:
     max_link_capacity: int = 1
 
     def __post_init__(self) -> None:
+        # i think this should be in the parser, not here
         if self.zone_a == self.zone_b:
             raise ValueError("Start and finish should have different coordinates")
 
