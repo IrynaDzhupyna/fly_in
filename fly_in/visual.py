@@ -146,6 +146,7 @@ class GraphDrawer:
 
         self._draw_connections()
         self._draw_zones()
+        # self._drone_counter()
 
     def _draw_connections(self) -> None:
         """Draws the connections"""
@@ -227,6 +228,23 @@ class GraphDrawer:
             zones_names.append(label)
 
         return zones_names
+
+    def _drone_counter(self) -> None:
+        """Counts drones in current zone"""
+
+        marge = 10
+
+        for zone in self.graph.zones.values():
+            pass
+
+
+
+
+@dataclass
+class Counter:
+    """Counts drones in current zone"""
+
+    pass
 
 
 @dataclass
@@ -323,9 +341,9 @@ class DroneDrawer:
                 visible_drones = drones
             else:
                 visible_drones = [
-                    drones[0],
-                    drones[4],
-                    drones[9],
+                    # drones[0],
+                    # drones[4],
+                    # drones[9],
                     drones[-1]
                 ]
 
