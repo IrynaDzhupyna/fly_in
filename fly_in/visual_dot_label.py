@@ -230,25 +230,29 @@ class GraphDrawer:
 
 
 @dataclass
-class DroneVisual:
-    """Creates and manages a drone's visual representation"""
+class DroneLabel:
+    """Creates and manages a drone's visual label"""
 
     drone_id: int
     x: float
     y: float
 
+    marge = 30
+
     text: arcade.Text = field(init=False)
+    # shape: arcade.shape_list.Shape = field(init=False)
 
     def __post_init__(self) -> None:
-        """Creates the drone 'text'"""
+        """Initiates 'text' and 'shape' attributes by calling methods"""
 
         self.text = self._create_text()
+        # self.shape = self._create_shape()
 
-    # @property
-    # def _x_move_left(self) -> float:
-    #     """Modifies x coordinate so the label is left/midle of the drone"""
+    @property
+    def _x_move_left(self) -> float:
+        """Modifies x coordinate so the label is left/midle of the drone"""
 
-    #     return self.x - self.marge
+        return self.x - self.marge
 
     def _create_text(self) -> arcade.Text:
         """Draws ID of a drone"""
@@ -257,7 +261,7 @@ class DroneVisual:
 
         return arcade.Text(
             text=f"D{self.drone_id}",
-            x=self.x,
+            x=self._x_move_left,
             y=self.y,
             color=arcade.color.BLACK,
             font_size=font_size,
@@ -266,11 +270,11 @@ class DroneVisual:
         )
 
     def draw(self) -> None:
-        """Draws the background and text."""
+        """Draws the label background and text."""
 
         arcade.draw_rect_filled(
             arcade.XYWH(
-                self.x,
+                self._x_move_left,
                 self.y,
                 32,
                 20
@@ -281,13 +285,16 @@ class DroneVisual:
         self.text.draw()
 
     def update_position(self, x: float, y: float) -> None:
-        """Updates the position when drone moves"""
+        """Updates the label position when drone moves"""
 
         self.x = x
         self.y = y
 
-        self.text.x = self.x
+        self.text.x = self._x_move_left
         self.text.y = self.y
+
+        # self.shape.center_x = self._x_move_left
+        # self.shape.center_y = self.y
 
 
 class DroneDrawer:
@@ -301,8 +308,10 @@ class DroneDrawer:
         self.drones = drones
         self.coord_transformer = screen_coordinates
 
-        self.drone_visuals: dict[int, DroneVisual] = (
-            self._create_drone_visuals()
+        # or set the value directly in draw_drone()
+        self.drone_radius = 10
+        self.drone_labels: dict[int, DroneLabel] = (
+            self._create_drone_labels()
         )
 
 
@@ -318,60 +327,61 @@ class DroneDrawer:
             drones_by_zone[drone.current_zone].append(drone)
 
         for zone, drones in drones_by_zone.items():
+            for drones in drones_by_zone.values():
 
-            if len(drones) <= 5:
-                visible_drones = drones
-            else:
-                visible_drones = [
-                    drones[0],
-                    drones[4],
-                    drones[9],
-                    drones[-1]
-                ]
+                if len(drones) <= 3:
+                    visible_drones = drones
+                else:
+                    visible_drones = [
+                        drones[0],
+                        drones[-1]
+                    ]
 
-            for index, drone in enumerate(visible_drones):
-                self._draw_drone(drone, index)
+                for index, drone in enumerate(visible_drones):
+                    self._draw_drone(drone, index)
+
 
     def _draw_drone(self, drone: Drone, index: int) -> None:
-        """Draws one drone"""
+        """Draws one drone and its label"""
 
         x, y = self.coord_transformer.to_screen_coordinates(
             drone.current_zone.coordinates)
 
-        columns = 3
-        x_spacing = 35
-        y_spacing = 25
+        spacing = 25
+        y -= index * spacing
 
-        column = index % columns
-        row = index // columns
+        label = self.drone_labels[drone.id]
+        label.update_position(x, y)
 
-        x += (column - 1) * x_spacing
-        y -= row * y_spacing
+        label.draw()
 
-        visual = self.drone_visuals[drone.id]
-        visual.update_position(x, y)
+        arcade.draw_circle_filled(
+            x,
+            y,
+            self.drone_radius,
+            arcade.color.RED
+            )
 
-        visual.draw()
 
-    def _create_drone_visuals(self) -> dict[int, DroneVisual]:
+    def _create_drone_labels(self) -> dict[int, DroneLabel]:
         """ Creates a lable for each drone"""
 
-        drone_visuals: dict[int, DroneVisual] = {}
+        drone_labels: dict[int, DroneLabel] = {}
 
         for drone in self.drones:
             x, y = self.coord_transformer.to_screen_coordinates(
                 drone.current_zone.coordinates
             )
 
-            visual = DroneVisual(
+            label = DroneLabel(
                 drone_id=drone.id,
                 x=x,
                 y=y
             )
 
-            drone_visuals[drone.id] = visual
+            drone_labels[drone.id] = label
 
-        return drone_visuals
+        return drone_labels
 
 
 class SimulationWindow(arcade.Window):

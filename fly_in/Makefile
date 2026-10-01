@@ -7,16 +7,16 @@ run: install
 	poetry run python3 $(NAME) $(CUSTOM_MAP) $(VISUAL)
 
 easy:
-	poetry run python3 $(NAME) 01_linear_path.txt
+	poetry run python3 $(NAME) 01_linear_path.txt $(VISUAL)
 
 medium:
-	poetry run python3 $(NAME) 01_dead_end_trap.txt
+	poetry run python3 $(NAME) ./maps/medium/01_dead_end_trap.txt $(VISUAL)
 
 hard:
-	poetry run python3 $(NAME) 01_dead_end_trap.txt
+	poetry run python3 $(NAME) ./maps/hard/01_maze_nightmare.txt $(VISUAL)
 
-challenger:
-	poetry run python3 $(NAME) 01_the_impossible_dream.txt
+chal:
+	poetry run python3 $(NAME) ./maps/challenger/01_the_impossible_dream.txt $(VISUAL)
 
 install:
 	poetry install

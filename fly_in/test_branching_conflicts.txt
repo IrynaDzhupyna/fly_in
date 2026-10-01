@@ -1,8 +1,8 @@
-nb_drones: 20
+nb_drones:50
 
 start_hub: start 0 0
 hub: A 1 0 [color=banana]
-hub: B 2 0 [color=green]
+hub: B 2 0 [color=black]
 hub: C 1 2
 hub: D 2 2
 hub: E 1 -2
