@@ -238,15 +238,6 @@ class GraphDrawer:
             pass
 
 
-
-
-@dataclass
-class Counter:
-    """Counts drones in current zone"""
-
-    pass
-
-
 @dataclass
 class DroneVisual:
     """Creates and manages a drone's visual representation"""
@@ -336,7 +327,16 @@ class DroneDrawer:
             drones_by_zone[drone.current_zone].append(drone)
 
         for zone, drones in drones_by_zone.items():
-
+            x, y = self.coord_transformer.to_screen_coordinates(
+                zone.coordinates
+                )
+            arcade.draw_text(
+                text=str(len(drones)),
+                x=x + 40,
+                y=y + 40,
+                color=arcade.color.BLACK,
+                font_size=14
+            )
             if len(drones) <= 5:
                 visible_drones = drones
             else:
