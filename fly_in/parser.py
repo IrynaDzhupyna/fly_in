@@ -1,4 +1,3 @@
-# import sys
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -223,7 +222,7 @@ class Parser(BaseModel):
 
         result: dict[str, str] = {}
 
-        for item in metadata.split(","):
+        for item in metadata.split(" "):
             item = item.strip()
 
             if not item:

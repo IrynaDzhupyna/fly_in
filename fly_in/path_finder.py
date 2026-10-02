@@ -1,8 +1,13 @@
 from dataclasses import dataclass, field
 from collections import deque
 
-from graph import Graph
 from zone import Zone, Zone_type, Zone_role
+from graph import Graph
+
+
+class PathFinderError(Exception):
+    """Custom error for PathFinder class"""
+    pass
 
 
 @dataclass
@@ -18,12 +23,12 @@ class Path:
     moves: int
 
     # REMOVE ME
-    def info_path(self) -> None:
-        for zone in self.zones:
-            print(zone.name)
+    # def info_path(self) -> None:
+    #     for zone in self.zones:
+    #         print(zone.name)
 
-        print(f"General cost: {self.cost}")
-        print(f"General moves: {self.moves}\n")
+    #     print(f"General cost: {self.cost}")
+    #     print(f"General moves: {self.moves}\n")
 
 
 @dataclass
@@ -62,107 +67,30 @@ class PathSet:
 
 
 @dataclass
-class PathConflict:
-    path_a: Path
-    path_b: Path
-    zones: list[Zone]
-
-    def has_paths(self, path_1: Path, path_2: Path) -> bool:
-        paths = self.path_a, self.path_b
-        return path_1 in paths and path_2 in paths
-
-    def info_conflict(self) -> None:
-        print("\nCONFLICTED ZONES\n")
-        for zone in self.zones:
-            print(zone.name)
-
-
-class PathFinderError(Exception):
-    """Custom error for PathFinder class"""
-    pass
-
-
-@dataclass
 class PathFinder:
-    """
-    - Searches the Graph
-    - Finds all possible ways from start to finish
-    - calculate/compare route costs
-    - choose useful paths
-    - Returns: Path objects """
+    """Finds the best paths to deliver all drones
+    from start to finish in fewest turns"""
 
-    # needs
     graph: Graph
-    # return
-    # path_set: PathSet
 
     def run(self) -> PathSet:
-        # find all paths
-        all_paths = self._find_all_paths()
+        """The main for all path finding mechanism"""
 
-        print("\nALL PATHS\n")
-        for path in all_paths:
-            path.info_path()
-
-        # sorted by cost
-        sorted_by_cost = sorted(
-            all_paths, key=lambda path: path.cost
-        )
+        all_paths: list[Path] = self._find_all_paths()
+        sorted_by_cost: list[Path] = sorted(all_paths, key=lambda path: path.cost)
 
         if not sorted_by_cost:
             raise PathFinderError(
-                "Not valid (from start till end) path found"
+                "No valid paths were found"
             )
 
-        # shared zones detection
-        conflicts = self._check_conflicts(sorted_by_cost)
-
-        print("\nCONFLICTS\n")
-        for conf in conflicts:
-            conf.info_conflict()
-        
-        # build valid combinations between paths
-            # valid combination - group of paths without conflicts
-        combinations: list[list[Path]] = self._build_valid_combinations(
-            sorted_by_cost, conflicts)
-
-        print("\nVALID COMBINATIONS\n")
-
-        for i, comb in enumerate(combinations):
-            print(f"--- COMBINATION {i} ---")
-
-            for path in comb:
-                path.info_path()
-
-        # allocate drones and create PathSets
-        sets: list[PathSet] = []
-
-        for comb in combinations:
-
-            path_set = PathSet(
-                self._drones_assignment(comb)
-            )
-            sets.append(path_set)
-
-
-        print("\nPATH SETS\n")
-        for path_set in sets:
-            print(f"Finishing turns: {path_set.finishing_turn}")
-
-            for assignment in path_set.assignments:
-                print(f"Drones: {assignment.drones}")
-                print(f"Turns: {assignment.turns}\n")
-
-        # compare the resulting PathSets
-
-        best_path_set = min(sets, key=lambda pathset: pathset.finishing_turn)
-        print(best_path_set.finishing_turn)
-
-        # return best_path_set
-        return best_path_set
+        paths_to_use: list[Path] = self._find_paths_to_use(sorted_by_cost)
+        return PathSet(
+            self._assign_drones(paths_to_use)
+        )
 
     def _find_all_paths(self) -> list[Path]:
-        """Finds all possible paths in a graph"""
+        """Finds all possible paths in graph"""
 
         start = Path(
             zones=[self.graph.start],
@@ -170,23 +98,26 @@ class PathFinder:
             moves=0
         )
 
-        queue_paths: deque[Path] = deque([start])
+        paths_to_explore: deque[Path] = deque([start])
         all_paths: list[Path] = []
 
-        while queue_paths:
+        while paths_to_explore:
 
-            path = queue_paths.popleft()
+            path = paths_to_explore.popleft()
             current_zone = path.zones[-1]
 
-            if current_zone is self.graph.end:
+            if current_zone == self.graph.end:
                 all_paths.append(path)
                 continue
 
             for zone, _connection in self.graph.neighbors(
-                current_zone):
+                current_zone
+                ):
 
-                if (zone in path.zones) or (
-                    zone.type is Zone_type.BLOCKED):
+                if (
+                    zone in path.zones
+                    or zone.type is Zone_type.BLOCKED
+                    ):
                     continue
 
                 new_zones = path.zones.copy()
@@ -198,70 +129,33 @@ class PathFinder:
                     moves=path.moves + 1
                 )
 
-                queue_paths.append(new_path)
+                paths_to_explore.append(new_path)
 
         return all_paths
 
-    def _check_conflicts(self, sorted_paths: list[Path]) -> list[PathConflict]:
-        """Compares zones in two paths and detects shared/conflicted ones"""
+    def _find_paths_to_use(self, sorted_by_cost: list[Path]) -> list[Path]:
+        """Finds the most efficient paths to assign drones to"""
 
-        conflicts: list[PathConflict] = []
-
-        for i in range(len(sorted_paths)):
-            path_a = sorted_paths[i]
-
-            for j in range(i + 1, len(sorted_paths)):
-                path_b = sorted_paths[j]
-
-                shared_zones: list[Zone] = []
-
-                for zone_a in path_a.zones:
-                    for zone_b in path_b.zones:
-                        if zone_a == zone_b:
-                            if zone_a.role is Zone_role.START or zone_a.role is Zone_role.END:
-                                continue
-                            shared_zones.append(zone_a)
-
-                if not shared_zones:
-                    continue
-
-                new_conflict = PathConflict(path_a=path_a,
-                                            path_b=path_b,
-                                            zones=shared_zones)
-                conflicts.append(new_conflict)
-
-        return conflicts
-
-    def _build_valid_combinations(self, 
-                                  sorted_by_cost: list[Path],
-                                  conflicts: list[PathConflict]) -> list[list[Path]]:
-        """Create all useful non-conflicted path combinations"""
-
-        # branching combinations
-        # take a or skip?
-        valid_combinations: list[list[Path]] = [[]]
+        useful_paths: list[Path] = []
+        best_finishing_turn: int | None = None
 
         for path in sorted_by_cost:
-            for combination in valid_combinations.copy():
+            candidate_paths = useful_paths.copy()
+            candidate_paths.append(path)
 
-                has_conflict = any(
-                    conflict.has_paths(path, chosen)
-                    for chosen in combination
-                    for conflict in conflicts
-                )
+            assignments = self._assign_drones(candidate_paths)
+            candidate_set = PathSet(assignments)
 
-                if not has_conflict:
-                    new_combination = combination.copy()
-                    new_combination.append(path)
-                    
-                    valid_combinations.append(new_combination)
+            if (best_finishing_turn is None or
+                candidate_set.finishing_turn < best_finishing_turn):
 
-        return valid_combinations[1:]
+                useful_paths.append(path)
+                best_finishing_turn = candidate_set.finishing_turn
 
+        return useful_paths
 
-
-    def _drones_assignment(
-            self, combination: list[Path]) -> list[PathAssignment]:
+    def _assign_drones(
+        self, combination: list[Path]) -> list[PathAssignment]:
         """ Distributes drones between paths"""
 
         assignments: list[PathAssignment] = []
@@ -270,7 +164,6 @@ class PathFinder:
             assignment = PathAssignment(path)
             assignments.append(assignment)
 
-        # distribution
         for _ in range(self.graph.nb_drones):
 
             smallest_assignment = min(
@@ -280,35 +173,4 @@ class PathFinder:
             smallest_assignment.drones += 1
 
         return assignments
-
-
-# import sys
-
-# from parser import Parser, ParserError
-# from path_finder import PathFinder, PathFinderError
-
-
-# def main() -> None:
-
-#     file_name = "test_two_paths.txt"
-
-#     parser = Parser(file_name=file_name)
-#     try:
-#         graph = parser.parse()
-#     except ParserError as error:
-#         print(f"Error: {error}")
-#         return
-    
-#     path_finder = PathFinder(graph)
-#     try:
-#         path_finder.run()
-#     except PathFinderError as error:
-#         print(f"Error: {error}")
-#         return
-
-
-# if __name__ == "__main__":
-#     main()
-
-
 

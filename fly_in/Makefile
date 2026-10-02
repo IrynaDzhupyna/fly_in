@@ -1,22 +1,21 @@
 SRC = .
 NAME = fly_in.py
 CUSTOM_MAP = test_branching_conflicts.txt
-VISUAL = visualization.py
 
 run: install
-	poetry run python3 $(NAME) $(CUSTOM_MAP) $(VISUAL)
+	poetry run python3 $(NAME) $(CUSTOM_MAP) 
 
 easy:
-	poetry run python3 $(NAME) 01_linear_path.txt $(VISUAL)
+	poetry run python3 $(NAME) ./maps/easy/02_simple_fork.txt
 
 medium:
-	poetry run python3 $(NAME) ./maps/medium/01_dead_end_trap.txt $(VISUAL)
+	poetry run python3 $(NAME) ./maps/medium/02_circular_loop.txt
 
 hard:
-	poetry run python3 $(NAME) ./maps/hard/01_maze_nightmare.txt $(VISUAL)
+	poetry run python3 $(NAME) ./maps/hard/01_maze_nightmare.txt
 
 chal:
-	poetry run python3 $(NAME) ./maps/challenger/01_the_impossible_dream.txt $(VISUAL)
+	poetry run python3 $(NAME) ./maps/challenger/01_the_impossible_dream.txt
 
 install:
 	poetry install
@@ -37,4 +36,7 @@ lint-strict:
 	flake8 $(SRC)
 	mypy $(SRC) --strict
 
-.PHONY: run install debug clean lint lint-strict
+test:
+	poetry run pytest
+
+.PHONY: run install debug clean lint lint-strict test
