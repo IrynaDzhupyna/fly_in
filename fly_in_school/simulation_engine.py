@@ -25,17 +25,17 @@ class SimulationEngine:
 
     drones: list[Drone] = field(init=False, default_factory=list)
     drone_routes: list[DroneRoute] = field(
-        init=False, 
+        init=False,
         default_factory=list)
     turn: int = field(init=False, default=0)
-    
+
     @property
     def is_finished(self) -> bool:
         return self._all_drones_delivered()
 
-
     def __post_init__(self) -> None:
-        """Initiates the list of drones, add drone to start on each iteration"""
+        """Initiates the list of drones,
+        add drone to start on each iteration"""
 
         # initiate drones
         for i in range(1, self.graph.nb_drones + 1):
@@ -93,7 +93,6 @@ class SimulationEngine:
                     print(move, end=" ")
         print()
 
-
     def _process_drone(self, route: DroneRoute) -> str | None:
         """Process one drone during the current turn."""
 
@@ -137,7 +136,6 @@ class SimulationEngine:
         drone.current_zone.decrease_capacity()
         zone_to.increase_capacity()
         drone.move_forward(zone_to)
-       
 
         # this should be somewhere else
         if zone_to.role is Zone_role.END:
@@ -152,8 +150,7 @@ class SimulationEngine:
 
         return True
 
-
-    # # remove when it is not needed
+    # remove when it is not needed
     # def info(self, drone: Drone) -> None:
     #     # """ Prints the info about every drone"""
     #     # for drone in self.drones:
@@ -167,7 +164,6 @@ class SimulationEngine:
     #         f"D{drone.id} at {drone.current_zone.name}, "
     #         f"state={drone.state.value}, "
     #         f"path={drone.path}"
-    #     )
 
     def output_info(self) -> None:
         """Outputs the info about every turn.
@@ -179,9 +175,8 @@ class SimulationEngine:
         print(f"Turn {self.turn}:")
         for drone in self.drones:
             if drone.state.value is not Drone_state.DELIVERED:
-                if (drone.current_zone.role is not Zone_role.START
-                    and drone.current_zone.role is not Zone_role.END):
-                    print(f"D{drone.id}-{drone.current_zone.name}", end=" ")
+                if (drone.current_zone.role is not Zone_role.START and
+                        drone.current_zone.role is not Zone_role.END):
+                    print(f"D{drone.id}-"
+                          f"{drone.current_zone.name}", end=" ")
         print()
-
-

@@ -1,0 +1,38 @@
+import sys
+
+from parser import Parser, ParserError
+from simulation_engine import SimulationEngine
+from path_finder import PathFinder, PathFinderError
+from visual import Visualizer
+
+
+def main() -> None:
+
+    if len(sys.argv) < 2:
+        print("Usage: main.py <map_file>")
+        return
+
+    file_name = sys.argv[1]
+
+    parser = Parser(file_name=file_name)
+    try:
+        graph = parser.parse()
+    except ParserError as error:
+        print(f"Error: {error}")
+        return
+
+    path_finder = PathFinder(graph)
+    try:
+        best_path_set = path_finder.run()
+    except PathFinderError as error:
+        print(f"Error: {error}")
+        return
+
+    engine = SimulationEngine(graph, best_path_set)
+
+    visual = Visualizer(graph, engine)
+    visual.run()
+
+
+if __name__ == "__main__":
+    main()

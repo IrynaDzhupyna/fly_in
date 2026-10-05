@@ -1,0 +1,7 @@
+# ignore cache files
+__pycache__/
+.__mypy_cache__/
+.pytest_cache/
+
+custom_maps/
+maps/
