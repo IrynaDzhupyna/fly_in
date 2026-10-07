@@ -38,11 +38,21 @@ class Parser(BaseModel):
     def parse(self) -> Graph:
         """ Parses lines from map file sets nb_drones and returns Graph"""
 
+        first_line = True
+
         for line_number, raw_line in enumerate(self._read_lines(), start=1):
             line = raw_line.strip()
+
             if not line or line.startswith("#"):
                 continue
+            
             try:
+                if first_line and not line.startswith("nb_drones:"):
+                    raise ParserError(
+                        "'nb_drones' must be the first line"
+                    )
+                first_line = False
+                
                 self._parse_line(line)
             except ParserError as error:
                 raise ParserError(f"Line {line_number}: {error}") from error
@@ -173,6 +183,10 @@ class Parser(BaseModel):
 
         if not name:
             raise ParserError("Zone name cannot be empty")
+        
+        if "-" in name:
+            raise ParserError(f"Invalid zone name: '{name}'")
+
         if name in self.zones:
             raise ParserError(f"Duplicate zone name: '{line}'")
 
@@ -185,14 +199,22 @@ class Parser(BaseModel):
         metadata = self._parse_metadata(
             metadata_tockens, allowed_keys=ZONE_METADATA)
 
+        role = ZONE_PREFIXES[prefix]
+
+        if role is Zone_role.HUB:
+            max_drones = self._parse_positive_int(
+                metadata.get("max_drones", "1"), "max_drones"
+            )
+        else:
+            max_drones = 1
+
         self.zones[name] = Zone(
             name=name,
             coordinates=coordinates,
-            role=ZONE_PREFIXES[prefix],
+            role=role,
             type=self._parse_zone_type(metadata),
             color=metadata.get("color"),
-            max_drones=self._parse_positive_int(
-                metadata.get("max_drones", "1"), "max_drones"),
+            max_drones=max_drones
         )
 
     def _parse_metadata(

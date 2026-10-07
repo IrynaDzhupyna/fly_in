@@ -25,12 +25,27 @@ The constraints:
 
 This project has modular, decoupled object-oriented architecture. It allows to isolate changes in one component from affecting others, making it is easier to modify, replace or extend parts.
 
+## Parser
+
 **parser.py**
-#### Responsibilities:
-- check if all zones have unique names
-- checks if all coordinates are integers
-- check if all zones in connections are known
-- checks if no duplicates in connections
+
+The parser reads and validates the input map file and converts it into a `Graph` used by the rest of the program.
+
+It handles:
+
+- `nb_drones` and ensures it is defined first and has a valid positive value.
+- Start, end, and regular hub definitions with integer coordinates.
+- Unique zone names and required naming restrictions.
+- Zone metadata such as `zone`, `color`, and `max_drones`, including default values.
+- Connection definitions between previously defined zones.
+- Connection metadata such as `max_link_capacity`.
+- Duplicate, self-referencing, malformed, or unknown connections.
+- Comments and empty lines.
+- Metadata fields in any valid order.
+
+Invalid input raises a `ParserError` with the line number and a description of the problem. The parser stops immediately instead of creating a partially valid graph.
+
+The parser is covered by pytest tests for valid input, invalid syntax, metadata, default values, capacities, naming rules, connections, and common edge cases.
 
 **drone.py**
 **zone.py**
