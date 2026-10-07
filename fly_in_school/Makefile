@@ -29,8 +29,8 @@ clean:
 	rm -rf __pycache__ */__pycache__ .mypy_cache .pytest_cache
 
 lint:
-	flake8 $(SRC)
-	mypy $(SRC) --warn-return-any --warn-unused-ignores \
+	poetry run python -m flake8 $(SRC)
+	poetry run python -m mypy $(SRC) --warn-return-any --warn-unused-ignores \
 		--ignore-missing-imports --disallow-untyped-defs \
 		--check-untyped-defs
 
