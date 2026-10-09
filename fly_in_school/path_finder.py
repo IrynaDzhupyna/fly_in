@@ -145,7 +145,7 @@ class PathFinder:
             candidate_set = PathSet(assignments)
 
             if (best_finishing_turn is None or
-                    candidate_set.finishing_turn < best_finishing_turn):
+                    candidate_set.finishing_turn <= best_finishing_turn):
 
                 useful_paths.append(path)
                 best_finishing_turn = candidate_set.finishing_turn
