@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from graph import Graph
-from zone import Zone, Zone_role
+from zone import Zone, Zone_role, Zone_type
 from connection import Connection
 from drone import Drone, Drone_state
 from path_finder import Path, PathSet
@@ -13,6 +13,11 @@ class DroneRoute:
     drone: Drone
     path: Path
     position: int = 0
+
+
+class EngineError(Exception):
+    """Custom exception of SimulationEngine class"""
+    pass
 
 
 @dataclass
@@ -101,6 +106,9 @@ class SimulationEngine:
 
         next_zone = route.path.zones[route.position + 1]
 
+        if drone.state is Drone_state.IN_TRANSIT:
+            return self._finish_transit(route)
+
         neighbors = self.graph.neighbors(drone.current_zone)
 
         for zone, connection in neighbors:
@@ -111,9 +119,12 @@ class SimulationEngine:
             if not self._can_move_to(next_zone, connection, drone):
                 return
 
-            self._move_drone(drone, next_zone)
-            route.position += 1
+            self._move_drone(drone, next_zone, connection)
 
+            if drone.state is Drone_state.IN_TRANSIT:
+                return f"D{drone.id}-{connection.name}"
+            
+            route.position += 1
             return f"D{drone.id}-{next_zone.name}"
 
     def _can_move_to(self,
@@ -123,23 +134,55 @@ class SimulationEngine:
         """Checks if the turn is allowed"""
 
         if not zone.has_capacity() or not connection.has_capacity():
-            # mark drone as waiting
+
             drone.state = Drone_state.WAITING
             return False
 
         drone.state = Drone_state.AVAILABLE
         return True
 
-    def _move_drone(self, drone: Drone, zone_to: Zone) -> None:
-        """ Executes one-turn movemet of drone from one zone to next"""
+    def _move_drone(
+            self,
+            drone: Drone,
+            zone_to: Zone,
+            connection: Connection) -> None:
+        """Move drone toward the next zone."""
 
         drone.current_zone.decrease_capacity()
-        zone_to.increase_capacity()
-        drone.move_forward(zone_to)
 
-        # this should be somewhere else
-        if zone_to.role is Zone_role.END:
-            drone.mark_delivered()
+        if zone_to.type is Zone_type.RESTRICTED:
+            zone_to.reserve_capacity()
+            connection.increase_capacity(drone)
+            drone.move_to_connection(connection)
+
+        else:
+            
+            zone_to.increase_capacity()
+            drone.move_to_zone(zone_to)
+
+            # this should be somewhere else
+            if zone_to.role is Zone_role.END:
+                drone.mark_delivered()
+
+    def _finish_transit(self, route: DroneRoute) -> str:
+        """Move drone from connection to next zone"""
+
+        drone = route.drone
+        current_connection = drone.current_connection
+
+        if current_connection is None:
+            raise EngineError("Drone is not on connection")
+        
+        move_to = route.path.zones[route.position + 1]
+
+        current_connection.decrease_capacity(drone)
+        move_to.release_reservation()
+        move_to.increase_capacity()
+
+        drone.move_to_zone(move_to)
+        route.position += 1
+
+        return f"D{drone.id}-{move_to.name}"
 
     def _all_drones_delivered(self) -> bool:
         """ Returns 'True' if every drone was delivered"""
@@ -179,4 +222,5 @@ class SimulationEngine:
                         drone.current_zone.role is not Zone_role.END):
                     print(f"D{drone.id}-"
                           f"{drone.current_zone.name}", end=" ")
+                    print(f"{drone.state}")
         print()

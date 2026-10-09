@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from zone import Coordinates, Zone, Zone_role, Zone_type
 from connection import Connection
 from graph import Graph
+from drone import Drone
 
 
 ZONE_PREFIXES = {
@@ -349,3 +350,7 @@ class Parser(BaseModel):
             start=starts[0],
             end=ends[0],
         )
+
+Parser.model_rebuild(
+    _types_namespace={"Drone":Drone}
+)

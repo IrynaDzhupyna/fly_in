@@ -5,14 +5,10 @@ of the 42 curriculum by <irdzhupy>
 
 Fly-in is a system that efficiently routes a fleet of drones from central base (start) to a target location (end), while navigating this dynamic network under a set of strict constains and optimization goals.
 
-Table of Contents
-1. Description
-    - Architecture & Design
-2. Instructions
-3. Usage Example
-4. Resources
-
 ## Description
+
+Main problem: 
+    deliver all drones from start to end in the fewest possible simulation turns while respecting movement constrains.
 
 The main objective is to move all drones from the start zone to the end in the fewest possible simulation turns.
 
@@ -24,6 +20,34 @@ The constraints:
 ### Architecture & Design
 
 This project has modular, decoupled object-oriented architecture. It allows to isolate changes in one component from affecting others, making it is easier to modify, replace or extend parts.
+
+***Algorithm***
+It consist of two parts:
+- PathFinder - planning and optimization
+- SimulationEngine - execuding and scheduling
+
+PathFinder task:
+1. Find all possibel paths from start to end
+2. Select those that can reduce total finishing time
+3. Distribute drones between tham to minin=mize the estimated number of turns
+
+Simulation engine
+1. Assigns drones to the path
+2. Checks if the movement are legal
+3. Exectes turns one by one
+4. Handles the restricted zones movemt
+5. Prevent collisions and deadlock
+6. Sheduling the movents to shared zones if such appears
+7. Calculates the real finishing time
+8. Track if all drones have arrived
+
+
+**Restricted movement**
+D1 enters the connection towards B. B zone got a reservation so no other drones can enter this. D1 enters B, reservation is released and + 1 occupant added.
+
+If the next zone is Restricted, we check the connection capacity and move the drone there on next turn. On Turn 3 we move the drone towards the Restricte zone and reduce the occupants the of connection.
+
+if one of drones are on connction toward the zone, other drones should not enter this zone. So we have 'reserved' in zone to book a place for our drone in transit.
 
 ## Parser
 
@@ -140,7 +164,11 @@ D0-<waypoint2> D1-<waypoint1>
 D0-<goal> D1-<waypoint2>
 D0-<goal> D1-<goal>
 
+
+### Visualization
+** visualization.py**
+The visualization is done with Arcade.
+
 ## Resources
 - [gitignore](https://git-scm.com/docs/gitignore)
 - [README manual](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
-

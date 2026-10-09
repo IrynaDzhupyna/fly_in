@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from graph import Graph
 from zone import Zone, Coordinates
 from simulation_engine import SimulationEngine
-from drone import Drone
+from drone import Drone, Drone_state
 
 WINDOW_TITLE = "Fly-in"
 
@@ -352,18 +352,37 @@ class DroneDrawer:
     def _draw_drone(self, drone: Drone, index: int) -> None:
         """Draws one drone"""
 
-        x, y = self.coord_transformer.to_screen_coordinates(
-            drone.current_zone.coordinates)
+        if drone.state is Drone_state.IN_TRANSIT:
+            connection = drone.current_connection
 
-        columns = 3
-        x_spacing = 35
-        y_spacing = 25
+            if connection is None:
+                raise ValueError(
+                    "Drone is in transit without a connection"
+                )
 
-        column = index % columns
-        row = index // columns
+            zone_a = connection.zone_a
+            zone_b = connection.zone_b
 
-        x += (column - 1) * x_spacing
-        y -= row * y_spacing
+            x1, y1 = self.coord_transformer.to_screen_coordinates(
+                zone_a.coordinates)
+            x2, y2 = self.coord_transformer.to_screen_coordinates(
+                zone_b.coordinates)
+            
+            x = (x1 + x2) / 2
+            y = (y1 + y2) / 2
+        else:
+            x, y = self.coord_transformer.to_screen_coordinates(
+                drone.current_zone.coordinates)
+
+            columns = 3
+            x_spacing = 35
+            y_spacing = 25
+
+            column = index % columns
+            row = index // columns
+
+            x += (column - 1) * x_spacing
+            y -= row * y_spacing
 
         visual = self.drone_visuals[drone.id]
         visual.update_position(x, y)

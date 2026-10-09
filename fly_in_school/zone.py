@@ -25,6 +25,11 @@ class Coordinates:
     y: int
 
 
+class ZoneError(Exception):
+    """Custom error for Zone class"""
+    pass
+
+
 @dataclass
 class Zone:
     """ A Zone hub in the drone network"""
@@ -36,6 +41,7 @@ class Zone:
     color: str | None = None
     max_drones: int = 1
 
+    reserved: int = 0
     occupants: int = field(default=0, init=False)
     connections: list[str] = field(default_factory=list, init=False)
 
@@ -69,7 +75,25 @@ class Zone:
         if self.role is Zone_role.START or self.role is Zone_role.END:
             return True
 
-        return self.occupants < self.max_drones
+        return self.occupants + self.reserved < self.max_drones
+
+    def reserve_capacity(self) -> bool:
+        """Reserves space for a drone in transit"""
+
+        if not self.has_capacity():
+            return False
+
+        self.reserved += 1
+        return True
+
+    def release_reservation(self):
+        """Release a previously reserved space"""
+        if self.reserved <= 0:
+            raise ZoneError(
+                "No reservation to cancel"
+            )
+
+        self.reserved -= 1
 
     def info_zone(self) -> None:
         print(f"Name: {self.name}")
