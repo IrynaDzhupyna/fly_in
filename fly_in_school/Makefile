@@ -1,6 +1,6 @@
 SRC = .
 NAME = fly_in.py
-CUSTOM_MAP = custom_maps/test_branching_conflicts.txt
+CUSTOM_MAP = custom_maps/test_restricted_end.txt
 TESTS = tests/.
 
 run: install

@@ -81,11 +81,13 @@ class SimulationEngine:
             self.run_turn()
 
     def run_turn(self) -> None:
-        """Runs one turn of the simulation."""
+        """Iterate through drones and executes one simulation turn"""
 
-        # movements = []
-        self.turn += 1
-        print(f"Turn {self.turn}")
+        # self.turn += 1
+        # print(f"Turn {self.turn}")
+
+        # non delivered drones only got here
+        # but before the next turn we need to check if not all delivered
 
         for route in self.drone_routes:
 
@@ -99,7 +101,7 @@ class SimulationEngine:
         print()
 
     def _process_drone(self, route: DroneRoute) -> str | None:
-        """Process one drone during the current turn."""
+        """Decide and execute the next action for one drone"""
 
         # REVIEW ME
         drone = route.drone
@@ -146,7 +148,7 @@ class SimulationEngine:
             drone: Drone,
             zone_to: Zone,
             connection: Connection) -> None:
-        """Move drone toward the next zone."""
+        """Move drone toward the next zone or connection"""
 
         drone.current_zone.decrease_capacity()
 
@@ -165,7 +167,7 @@ class SimulationEngine:
                 drone.mark_delivered()
 
     def _finish_transit(self, route: DroneRoute) -> str:
-        """Move drone from connection to next zone"""
+        """Complete a restricted-zone movement"""
 
         drone = route.drone
         current_connection = drone.current_connection
@@ -180,9 +182,16 @@ class SimulationEngine:
         move_to.increase_capacity()
 
         drone.move_to_zone(move_to)
-        route.position += 1
+        # route.position += 1
 
         return f"D{drone.id}-{move_to.name}"
+
+    def _check_delivery(self, drone: Drone, zone: Zone) -> bool:
+        """Mark drone as delivered if it reached the end zone"""
+        if zone.role is Zone_role.END:
+            drone.state = Drone_state.DELIVERED
+            return True
+        return False
 
     def _all_drones_delivered(self) -> bool:
         """ Returns 'True' if every drone was delivered"""
@@ -192,6 +201,7 @@ class SimulationEngine:
                 return False
 
         return True
+
 
     # remove when it is not needed
     # def info(self, drone: Drone) -> None:
