@@ -22,14 +22,27 @@ The constraints:
 This project has modular, decoupled object-oriented architecture. It allows to isolate changes in one component from affecting others, making it is easier to modify, replace or extend parts.
 
 ***Algorithm***
-It consist of two parts:
+It consist of three parts:
 - PathFinder - planning and optimization
+- MovementCoordinator - coordinates the movement of drones
 - SimulationEngine - execuding and scheduling
 
 PathFinder task:
 1. Find all possibel paths from start to end
 2. Select those that can reduce total finishing time
 3. Distribute drones between tham to minin=mize the estimated number of turns
+
+MovementCoordinator
+1. Which drones want to move
+2. Whether destination zones have capacity
+3. Whether connection has capacity
+4. Which drone must wait
+5. Whether simultanious departure make room for arrivals
+
+How it works:
+- it collects all intended movements of all drones
+- checks the capacity of zones the all want to move in and if it fine - make move by simulation engine
+
 
 Simulation engine
 1. Assigns drones to the path

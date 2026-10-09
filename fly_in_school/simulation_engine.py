@@ -5,14 +5,7 @@ from zone import Zone, Zone_role, Zone_type
 from connection import Connection
 from drone import Drone, Drone_state
 from path_finder import Path, PathSet
-
-
-@dataclass
-class DroneRoute:
-    """Assigned drone and path"""
-    drone: Drone
-    path: Path
-    position: int = 0
+from drone_route import DroneRoute
 
 
 class EngineError(Exception):
@@ -69,102 +62,35 @@ class SimulationEngine:
                 drone_index += 1
 
     def run(self) -> None:
-        """
-            - manage turns
-            - ask pathfinder for desired move
-            - check whether desired move is legal
-            - engine executes legal move / drone waits
-            - update drone, zone, connection state
-            - repeat until all drones are delivered """
-
-        while not self._all_drones_delivered():
+        """Checks if not all drones delivered and activates the turn"""
+        
+        while not self.is_finished:
             self.run_turn()
 
     def run_turn(self) -> None:
-        """Iterate through drones and executes one simulation turn"""
-
-        # self.turn += 1
-        # print(f"Turn {self.turn}")
-
-        # non delivered drones only got here
-        # but before the next turn we need to check if not all delivered
-
+        """Iterates through drones and executes one simulation turn"""
+        print(f"Turn: {self.turn}")
         for route in self.drone_routes:
+            
+            if route.drone.state is Drone_state.DELIVERED:
+                continue
 
-            drone = route.drone
+            move = self._process_drone(route)
+            if move is not None:
+                print(move, end=" ")
 
-            if drone.state is not Drone_state.DELIVERED:
-                move = self._process_drone(route)
-                if move is not None:
-                    # movements.append(move)
-                    print(move, end=" ")
+        self.turn += 1
         print()
 
     def _process_drone(self, route: DroneRoute) -> str | None:
-        """Decide and execute the next action for one drone"""
+        """Decide and execute the next action for each drone"""
 
-        # REVIEW ME
-        drone = route.drone
-
-        next_zone = route.path.zones[route.position + 1]
+        drone: Drone = route.drone
 
         if drone.state is Drone_state.IN_TRANSIT:
             return self._finish_transit(route)
 
-        neighbors = self.graph.neighbors(drone.current_zone)
-
-        for zone, connection in neighbors:
-
-            if zone is not next_zone:
-                continue
-
-            if not self._can_move_to(next_zone, connection, drone):
-                return
-
-            self._move_drone(drone, next_zone, connection)
-
-            if drone.state is Drone_state.IN_TRANSIT:
-                return f"D{drone.id}-{connection.name}"
-            
-            route.position += 1
-            return f"D{drone.id}-{next_zone.name}"
-
-    def _can_move_to(self,
-                     zone: Zone,
-                     connection: Connection,
-                     drone: Drone) -> bool:
-        """Checks if the turn is allowed"""
-
-        if not zone.has_capacity() or not connection.has_capacity():
-
-            drone.state = Drone_state.WAITING
-            return False
-
-        drone.state = Drone_state.AVAILABLE
-        return True
-
-    def _move_drone(
-            self,
-            drone: Drone,
-            zone_to: Zone,
-            connection: Connection) -> None:
-        """Move drone toward the next zone or connection"""
-
-        drone.current_zone.decrease_capacity()
-
-        if zone_to.type is Zone_type.RESTRICTED:
-            zone_to.reserve_capacity()
-            connection.increase_capacity(drone)
-            drone.move_to_connection(connection)
-
-        else:
-            
-            zone_to.increase_capacity()
-            drone.move_to_zone(zone_to)
-
-            # this should be somewhere else
-            if zone_to.role is Zone_role.END:
-                drone.mark_delivered()
+        return self._move_drone(drone, route)
 
     def _finish_transit(self, route: DroneRoute) -> str:
         """Complete a restricted-zone movement"""
@@ -182,55 +108,67 @@ class SimulationEngine:
         move_to.increase_capacity()
 
         drone.move_to_zone(move_to)
-        # route.position += 1
-
+        self._check_delivery(drone, move_to)
+        route.position += 1
         return f"D{drone.id}-{move_to.name}"
 
-    def _check_delivery(self, drone: Drone, zone: Zone) -> bool:
-        """Mark drone as delivered if it reached the end zone"""
+    def _move_drone(self, drone: Drone, route: DroneRoute) -> str | None:
+        """Move drone toward the next zone or connection"""
+
+        next_zone: Zone = route.path.zones[route.position + 1]
+        neighbors: list[tuple[Zone, Connection]] = self.graph.neighbors(
+            drone.current_zone
+        )
+
+        for zone, connection in neighbors:
+            if zone is not next_zone:
+                continue
+
+            if not self._can_move_to(drone, zone, connection):
+                return
+
+            drone.current_zone.decrease_capacity()
+
+            if next_zone.type is Zone_type.RESTRICTED:
+                next_zone.reserve_capacity()
+                connection.increase_capacity(drone)
+                drone.move_to_connection(connection)
+                return f"D{drone.id}-{drone.current_connection.name}"
+
+            else:
+                next_zone.increase_capacity()
+                drone.move_to_zone(next_zone)
+                self._check_delivery(drone, drone.current_zone)
+                route.position += 1
+                return f"D{drone.id}-{drone.current_zone.name}"
+
+    def _can_move_to(
+            self,
+            drone: Drone,
+            zone: Zone,
+            connection: Connection) -> bool:
+            """Checks if the turn is allowed"""
+    
+            if not zone.has_capacity() or not connection.has_capacity():
+    
+                drone.state = Drone_state.WAITING
+                return False
+    
+            drone.state = Drone_state.AVAILABLE
+            return True
+
+    def _check_delivery(self, drone: Drone, zone: Zone) -> None:
+        """Mark drone as delivered if it reached the end"""
+
         if zone.role is Zone_role.END:
             drone.state = Drone_state.DELIVERED
-            return True
-        return False
 
     def _all_drones_delivered(self) -> bool:
-        """ Returns 'True' if every drone was delivered"""
 
-        for drone in self.drones:
-            if drone.state is not Drone_state.DELIVERED:
-                return False
-
-        return True
+        return all(
+            drone.state is Drone_state.DELIVERED
+            for drone in self.drones
+        )
 
 
-    # remove when it is not needed
-    # def info(self, drone: Drone) -> None:
-    #     # """ Prints the info about every drone"""
-    #     # for drone in self.drones:
-    #     #     print(f"Drone id: {drone.id}")
-    #     #     print(f"Drone state: {drone.state}")
-    #     #     print(f"Current zone: {drone.current_zone}")
-    #     #     print()
-
-    #     print(
-    #         f"Turn {self.turn}: "
-    #         f"D{drone.id} at {drone.current_zone.name}, "
-    #         f"state={drone.state.value}, "
-    #         f"path={drone.path}"
-
-    def output_info(self) -> None:
-        """Outputs the info about every turn.
-            Each simulation turn represented by a line.
-            A line list all the drones movements, space-separated.
-            Format: D<ID>-<zone> or
-                    D<ID>-<connection> if in flight towards restricted zone"""
-
-        print(f"Turn {self.turn}:")
-        for drone in self.drones:
-            if drone.state.value is not Drone_state.DELIVERED:
-                if (drone.current_zone.role is not Zone_role.START and
-                        drone.current_zone.role is not Zone_role.END):
-                    print(f"D{drone.id}-"
-                          f"{drone.current_zone.name}", end=" ")
-                    print(f"{drone.state}")
-        print()
+            
