@@ -29,9 +29,10 @@ def main() -> None:
         return
 
     engine = SimulationEngine(graph, best_path_set)
+    engine.run()
 
-    visual = Visualizer(graph, engine)
-    visual.run()
+    # visual = Visualizer(graph, engine)
+    # visual.run()
 
 
 if __name__ == "__main__":
