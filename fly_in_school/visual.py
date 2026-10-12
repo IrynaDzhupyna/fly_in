@@ -421,9 +421,12 @@ class SimulationWindow(arcade.Window):
         drone_drawer: DroneDrawer,
         engine: SimulationEngine
     ) -> None:
+
         self.graph_drawer = graph_drawer
         self.drone_drawer = drone_drawer
         self.engine = engine
+
+        self.is_playing = False
         self.time_since_last_turn = 0.0
         super().__init__(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 
@@ -432,21 +435,33 @@ class SimulationWindow(arcade.Window):
     def on_update(self, delta_time: float) -> None:
         """Advance the simulation according to elapsed time"""
 
+        if not self.is_playing:
+            return
+
+        if self.engine.is_finished:
+            self.is_playing = False
+            return
+
         self.time_since_last_turn += delta_time
 
-        # if (
-        #     not self.engine.is_finished
-        #     and self.time_since_last_turn >= TURN_DURATION
-        #     ):
-        #     self.engine.run_turn()
-        # self.time_since_last_turn = 0.0
+        if self.time_since_last_turn >= TURN_DURATION:
+            self.engine.run_turn()
+            self.time_since_last_turn = 0.0
+
+            if self.engine.is_finished:
+                self.is_playing = False
 
     def on_key_press(self, key: int, key_modifier: int) -> None:
         """Make a turn if space pressed"""
 
         if key == arcade.key.SPACE:
             if not self.engine.is_finished:
-                self.engine.run_turn()
+                self.is_playing = not self.is_playing
+                self.time_since_last_turn = 0.0
+
+        elif key == arcade.key.RIGHT:
+                if not self.is_playing and not self.engine.is_finished:
+                    self.engine.run_turn()
 
     def on_draw(self) -> None:
         """Calls all classes needed for visualization"""

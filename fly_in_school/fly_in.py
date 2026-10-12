@@ -4,16 +4,12 @@ from parser import Parser, ParserError
 from simulation_engine import SimulationEngine
 from path_finder import PathFinder, PathFinderError
 from visual import Visualizer
+from menu import run_menu
 
 
-def main() -> None:    
-
-    if len(sys.argv) < 2:
-        print("Usage: main.py <map_file>")
-        return
-
-    file_name = sys.argv[1]
-
+def run_simulation(file_name: str):
+    """Activates the stimulation engine"""
+    
     parser = Parser(file_name=file_name)
     try:
         graph = parser.parse()
@@ -29,9 +25,24 @@ def main() -> None:
         return
 
     engine = SimulationEngine(graph, best_path_set)
+    engine.run()
 
-    visual = Visualizer(graph, engine)
-    visual.run()
+
+def main() -> None:
+
+    if len(sys.argv) == 1:
+        run_menu(run_simulation)
+
+    elif len(sys.argv) == 2:
+        file_name = sys.argv[1]
+        run_simulation(file_name)
+
+    else:
+        print("Usage: main.py <map_file>")
+        return
+
+    # visual = Visualizer(graph, engine)
+    # visual.run()
 
 
 if __name__ == "__main__":
