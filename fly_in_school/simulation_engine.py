@@ -1,42 +1,49 @@
+
 from dataclasses import dataclass, field
 
 from graph import Graph
 from zone import Zone, Zone_role, Zone_type
 from connection import Connection
 from drone import Drone, Drone_state
-from path_finder import Path, PathSet
+from path_finder import PathSet
 from drone_route import DroneRoute
+from move_coordinator import MoveCoordinator, NextMove
 
 
 class EngineError(Exception):
-    """Custom exception of SimulationEngine class"""
+    """Custom exception of SimulationEngine class."""
     pass
 
 
 @dataclass
 class SimulationEngine:
-    """ Enforses the simulation rules.
-    Simulation engine for running drone simulations."""
+    """Executes drone movements and manages simulation turns."""
 
     graph: Graph
     path_set: PathSet
 
-    drones: list[Drone] = field(init=False, default_factory=list)
+    drones: list[Drone] = field(
+        init=False,
+        default_factory=list
+    )
     drone_routes: list[DroneRoute] = field(
         init=False,
-        default_factory=list)
+        default_factory=list
+    )
     turn: int = field(init=False, default=0)
+
+    coordinator: MoveCoordinator = field(init=False)
 
     @property
     def is_finished(self) -> bool:
+        """Returns True when all drones are delivered."""
         return self._all_drones_delivered()
 
     def __post_init__(self) -> None:
-        """Initiates the list of drones,
-        add drone to start on each iteration"""
+        """Creates drones and assigns their paths."""
 
-        # initiate drones
         for i in range(1, self.graph.nb_drones + 1):
+
             drone = Drone(
                 id=i,
                 state=Drone_state.AVAILABLE,
@@ -44,13 +51,14 @@ class SimulationEngine:
             )
 
             self.drones.append(drone)
-            # adds drone to start zone
             self.graph.start.increase_capacity()
 
         drone_index = 0
 
         for assignment in self.path_set.assignments:
+
             for _ in range(assignment.drones):
+
                 drone = self.drones[drone_index]
 
                 route = DroneRoute(
@@ -61,114 +69,133 @@ class SimulationEngine:
                 self.drone_routes.append(route)
                 drone_index += 1
 
+        self.coordinator = MoveCoordinator(
+            graph=self.graph,
+            drone_routes=self.drone_routes
+        )
+
     def run(self) -> None:
-        """Checks if not all drones delivered and activates the turn"""
-        
+        """Runs turns until every drone is delivered."""
+
         while not self.is_finished:
             self.run_turn()
 
     def run_turn(self) -> None:
-        """Iterates through drones and executes one simulation turn"""
-        print(f"Turn: {self.turn}")
-        for route in self.drone_routes:
-            
-            if route.drone.state is Drone_state.DELIVERED:
-                continue
+        """Executes one simultaneous simulation turn."""
 
-            move = self._process_drone(route)
-            if move is not None:
-                print(move, end=" ")
+        if self.is_finished:
+            return
 
         self.turn += 1
-        print()
 
-    def _process_drone(self, route: DroneRoute) -> str | None:
-        """Decide and execute the next action for each drone"""
+        movements: list[str] = []
 
-        drone: Drone = route.drone
+        # 1. Finish drones already in restricted transit.
+        for route in self.drone_routes:
 
-        if drone.state is Drone_state.IN_TRANSIT:
-            return self._finish_transit(route)
+            if route.drone.state is Drone_state.IN_TRANSIT:
+                move = self._finish_transit(route)
+                movements.append(move)
 
-        return self._move_drone(drone, route)
+        # 2. Ask coordinator which new movements are legal.
+        approved_moves = self.coordinator.run()
+
+        # 3. Free departure zones for all approved movements.
+        for move in approved_moves:
+            move.drone.current_zone.decrease_capacity()
+
+        # 4. Execute approved movements.
+        for move in approved_moves:
+            result = self._execute_move(move)
+            movements.append(result)
+
+        print(" ".join(movements))
 
     def _finish_transit(self, route: DroneRoute) -> str:
-        """Complete a restricted-zone movement"""
+        """Completes a restricted-zone movement."""
 
         drone = route.drone
-        current_connection = drone.current_connection
+        connection = drone.current_connection
 
-        if current_connection is None:
+        if connection is None:
             raise EngineError("Drone is not on connection")
-        
-        move_to = route.path.zones[route.position + 1]
 
-        current_connection.decrease_capacity(drone)
-        move_to.release_reservation()
-        move_to.increase_capacity()
+        next_zone = route.path.zones[route.position + 1]
 
-        drone.move_to_zone(move_to)
-        self._check_delivery(drone, move_to)
+        connection.decrease_capacity(drone)
+        next_zone.release_reservation()
+
+        if not next_zone.increase_capacity():
+            raise EngineError(
+                f"Cannot finish transit into {next_zone.name}"
+            )
+
+        drone.move_to_zone(next_zone)
         route.position += 1
-        return f"D{drone.id}-{move_to.name}"
 
-    def _move_drone(self, drone: Drone, route: DroneRoute) -> str | None:
-        """Move drone toward the next zone or connection"""
+        self._check_delivery(drone, next_zone)
 
-        next_zone: Zone = route.path.zones[route.position + 1]
-        neighbors: list[tuple[Zone, Connection]] = self.graph.neighbors(
-            drone.current_zone
+        return f"D{drone.id}-{next_zone.name}"
+
+    def _execute_move(self, move: NextMove) -> str:
+        """Executes one movement approved by the coordinator."""
+
+        drone = move.drone
+        next_zone = move.zone
+        connection = move.connection
+
+        route = self._find_route(drone)
+
+        if next_zone.type is Zone_type.RESTRICTED:
+
+            if not next_zone.reserve_capacity():
+                raise EngineError(
+                    f"Cannot reserve {next_zone.name}"
+                )
+
+            connection.increase_capacity(drone)
+            drone.move_to_connection(connection)
+
+            return f"D{drone.id}-{connection.name}"
+
+        if not next_zone.increase_capacity():
+            raise EngineError(
+                f"Cannot enter {next_zone.name}"
+            )
+
+        drone.move_to_zone(next_zone)
+        route.position += 1
+
+        self._check_delivery(drone, next_zone)
+
+        return f"D{drone.id}-{next_zone.name}"
+
+    def _find_route(self, drone: Drone) -> DroneRoute:
+        """Finds the assigned route for a drone."""
+
+        for route in self.drone_routes:
+
+            if route.drone is drone:
+                return route
+
+        raise EngineError(
+            f"Route not found for drone D{drone.id}"
         )
 
-        for zone, connection in neighbors:
-            if zone is not next_zone:
-                continue
-
-            if not self._can_move_to(drone, zone, connection):
-                return
-
-            drone.current_zone.decrease_capacity()
-
-            if next_zone.type is Zone_type.RESTRICTED:
-                next_zone.reserve_capacity()
-                connection.increase_capacity(drone)
-                drone.move_to_connection(connection)
-                return f"D{drone.id}-{drone.current_connection.name}"
-
-            else:
-                next_zone.increase_capacity()
-                drone.move_to_zone(next_zone)
-                self._check_delivery(drone, drone.current_zone)
-                route.position += 1
-                return f"D{drone.id}-{drone.current_zone.name}"
-
-    def _can_move_to(
-            self,
-            drone: Drone,
-            zone: Zone,
-            connection: Connection) -> bool:
-            """Checks if the turn is allowed"""
-    
-            if not zone.has_capacity() or not connection.has_capacity():
-    
-                drone.state = Drone_state.WAITING
-                return False
-    
-            drone.state = Drone_state.AVAILABLE
-            return True
-
-    def _check_delivery(self, drone: Drone, zone: Zone) -> None:
-        """Mark drone as delivered if it reached the end"""
+    def _check_delivery(
+        self,
+        drone: Drone,
+        zone: Zone
+    ) -> None:
+        """Marks a drone delivered when it reaches the end."""
 
         if zone.role is Zone_role.END:
-            drone.state = Drone_state.DELIVERED
+            drone.mark_delivered()
 
     def _all_drones_delivered(self) -> bool:
+        """Checks whether every drone has been delivered."""
 
         return all(
             drone.state is Drone_state.DELIVERED
             for drone in self.drones
         )
-
-
-            

@@ -1,7 +1,8 @@
+
 from dataclasses import dataclass
 
 from graph import Graph
-from zone import Zone
+from zone import Zone, Zone_role, Zone_type
 from drone import Drone, Drone_state
 from connection import Connection
 from drone_route import DroneRoute
@@ -9,6 +10,8 @@ from drone_route import DroneRoute
 
 @dataclass
 class NextMove:
+    """Represents one intended drone movement."""
+
     drone: Drone
     zone: Zone
     connection: Connection
@@ -16,123 +19,244 @@ class NextMove:
 
 @dataclass
 class MoveCoordinator:
-    """Decide which drones should enter first zone"""
-    
+    """Decides which drones can move during one turn.
+
+    The coordinator only plans movements.
+    SimulationEngine executes approved movements.
+    """
+
     graph: Graph
-    # drones position on/and assigned path
     drone_routes: list[DroneRoute]
 
     def run(self) -> list[NextMove]:
-        """Activates the movement coordinator"""
+        """Returns legal movements for the current turn."""
 
-        next_moves: list[NextMove] = self._intended_movements()
-        
-        departures: dict[Zone, list[NextMove]] = {}
-
-        planned_arrivals: dict[Zone, int] = {}
+        next_moves = self._intended_movements()
 
         approved_moves: list[NextMove] = []
 
         for move in next_moves:
-            current_zone = move.drone.current_zone
 
-            if current_zone not in departures:
-                departures[current_zone] = []
-            
-            departures[current_zone].append(move)
-
-        for move in next_moves:
-            can_move = self._can_move_recursive(move, departures)
-
-            if not can_move:
+            if move in approved_moves:
                 continue
 
-            approved_moves.append(move)
+            possible_moves = self._can_move_recursive(
+                move,
+                next_moves,
+                approved_moves
+            )
+
+            if possible_moves is None:
+                continue
+
+            for possible_move in possible_moves:
+                if possible_move not in approved_moves:
+                    approved_moves.append(possible_move)
+
+        approved_ids = {
+            move.drone.id for move in approved_moves
+        }
+
+        for move in next_moves:
+
+            if move.drone.id in approved_ids:
+                move.drone.state = Drone_state.AVAILABLE
+            else:
+                move.drone.state = Drone_state.WAITING
 
         return approved_moves
 
     def _intended_movements(self) -> list[NextMove]:
-        """Checks and future moves of all drones
-        and returns the list of them"""
+        """Finds the next desired movement of each drone."""
 
-        zones_to: list[NextMove] = []
+        next_moves: list[NextMove] = []
 
         for route in self.drone_routes:
 
             drone = route.drone
-            
-            if (drone.state is Drone_state.DELIVERED
-                or drone.state is Drone_state.IN_TRANSIT):
+
+            if (
+                drone.state is Drone_state.DELIVERED
+                or drone.state is Drone_state.IN_TRANSIT
+            ):
                 continue
 
-            next_to = route.path.zones[route.position + 1]
-            neighbours = self.graph.neighbors(
-                drone.current_zone
-            )
+            if route.position + 1 >= len(route.path.zones):
+                continue
 
-            for zone, connection in neighbours:
-                if zone is not next_to:
+            next_zone = route.path.zones[
+                route.position + 1
+            ]
+
+            if next_zone.type is Zone_type.BLOCKED:
+                continue
+
+            for zone, connection in self.graph.neighbors(
+                drone.current_zone
+            ):
+
+                if zone is not next_zone:
                     continue
 
-                next_zone = NextMove(
-                    drone=drone,
-                    zone=next_to,
-                    connection=connection
+                next_moves.append(
+                    NextMove(
+                        drone=drone,
+                        zone=zone,
+                        connection=connection
+                    )
                 )
 
-                zones_to.append(next_zone)
+                break
 
-        return zones_to
-
-    def _can_move_to(
-        self,
-        drone: Drone,
-        zone: Zone,
-        connection: Connection) -> bool:
-        """Checks if the turn is allowed"""
-
-        if not zone.has_capacity() or not connection.has_capacity():
-
-            drone.state = Drone_state.WAITING
-            return False
-
-        drone.state = Drone_state.AVAILABLE
-        return True
+        return next_moves
 
     def _can_move_recursive(
-            self,
-            move: NextMove,
-            departures: dict[Zone, list[NextMove]],
-            visited: set[int] | None = None) -> bool:
-        """Checks if intended zone has capacity and
-        if not check drone in intended drone
-        if his intended zone has capacity"""
+        self,
+        move: NextMove,
+        next_moves: list[NextMove],
+        approved_moves: list[NextMove],
+        visited: set[int] | None = None
+    ) -> list[NextMove] | None:
+        """Finds departures required to make a move possible."""
 
         if visited is None:
-           visited = set()
+            visited = set()
 
-        drone_id = move.drone.id
+        if move.drone.id in visited:
+            return None
 
-        if drone_id in visited:
-            return False
+        visited.add(move.drone.id)
 
-        visited.add(drone_id)
+        if move in approved_moves:
+            return []
 
-        if not move.connection.has_capacity():
-            return False
+        possible_moves = [move]
 
-        if move.zone.has_capacity():
-            return True
+        if self._plan_is_legal(
+            approved_moves + possible_moves
+        ):
+            return possible_moves
 
-        leaving_moves = departures.get(move.zone, [])
+        for other_move in next_moves:
 
-        for leaving_move in leaving_moves:
-            if self._can_move_recursive(
-                leaving_move,
-                departures,
+            if other_move.drone.current_zone is not move.zone:
+                continue
+
+            if other_move in approved_moves:
+                continue
+
+            if other_move.drone.id in visited:
+                continue
+
+            required_moves = self._can_move_recursive(
+                other_move,
+                next_moves,
+                approved_moves + possible_moves,
                 visited.copy()
+            )
+
+            if required_moves is None:
+                continue
+
+            candidate = required_moves + possible_moves
+
+            if self._plan_is_legal(
+                approved_moves + candidate
             ):
-               return True
+                return candidate
 
-        return False
+        return None
 
+    def _plan_is_legal(
+        self,
+        moves: list[NextMove]
+    ) -> bool:
+        """Checks all capacities after simultaneous movement."""
+
+        departures: dict[int, int] = {}
+        arrivals: dict[int, int] = {}
+        connections: dict[int, int] = {}
+
+        zones: dict[int, Zone] = {}
+        links: dict[int, Connection] = {}
+
+        drone_ids: set[int] = set()
+
+        for move in moves:
+
+            drone = move.drone
+            current_zone = drone.current_zone
+            next_zone = move.zone
+            connection = move.connection
+
+            if drone.id in drone_ids:
+                return False
+
+            drone_ids.add(drone.id)
+
+            if next_zone.type is Zone_type.BLOCKED:
+                return False
+
+            if current_zone is next_zone:
+                return False
+
+            current_id = id(current_zone)
+            next_id = id(next_zone)
+            connection_id = id(connection)
+
+            zones[current_id] = current_zone
+            zones[next_id] = next_zone
+            links[connection_id] = connection
+
+            departures[current_id] = (
+                departures.get(current_id, 0) + 1
+            )
+
+            arrivals[next_id] = (
+                arrivals.get(next_id, 0) + 1
+            )
+
+            connections[connection_id] = (
+                connections.get(connection_id, 0) + 1
+            )
+
+        for connection_id, count in connections.items():
+
+            connection = links[connection_id]
+
+            occupied = len(connection.occupants)
+
+            if (
+                occupied + count
+                > connection.max_link_capacity
+            ):
+                return False
+
+        for zone_id, zone in zones.items():
+
+            if (
+                zone.role is Zone_role.START
+                or zone.role is Zone_role.END
+            ):
+                continue
+
+            occupied = zone.occupants
+            reserved = zone.reserved
+
+            leaving = departures.get(zone_id, 0)
+            arriving = arrivals.get(zone_id, 0)
+
+            final_occupancy = (
+                occupied
+                + reserved
+                - leaving
+                + arriving
+            )
+
+            if final_occupancy > zone.max_drones:
+                return False
+
+            if final_occupancy < 0:
+                return False
+
+        return True
