@@ -1,32 +1,33 @@
-SRC = .
 NAME = fly_in.py
-CUSTOM_MAP = custom_maps/test_branching_conflicts.txt
-TESTS = tests/.
-
-run: install
-	poetry run python3 $(NAME) $(CUSTOM_MAP) 
-
-easy:
-	poetry run python3 $(NAME) ./maps/easy/02_simple_fork.txt
-
-medium:
-	poetry run python3 $(NAME) ./maps/medium/02_circular_loop.txt
-
-hard:
-	poetry run python3 $(NAME) ./maps/hard/01_maze_nightmare.txt
-
-chal:
-	poetry run python3 $(NAME) ./maps/challenger/01_the_impossible_dream.txt
+SRC = .
+MAP = custom_maps/test_branching_conflicts.txt
 
 install:
-	poetry sync || pipx install poetry && poetry sync
+	@command -v poetry >/dev/null 2>&1 || pipx install poetry
 	poetry install
 
+run:
+	poetry run python3 $(NAME) $(MAP)
+
+easy:
+	poetry run python3 $(NAME) maps/easy/02_simple_fork.txt
+
+medium:
+	poetry run python3 $(NAME) maps/medium/02_circular_loop.txt
+
+hard:
+	poetry run python3 $(NAME) maps/hard/01_maze_nightmare.txt
+
+chal:
+	poetry run python3 $(NAME) maps/challenger/01_the_impossible_dream.txt
+
 debug:
-	poetry run python3 -m pdb $(NAME) $(CUSTOM_MAP)
+	poetry run python3 -m pdb $(NAME) $(MAP)
 
 clean:
 	rm -rf __pycache__ */__pycache__ .mypy_cache .pytest_cache
+
+re: clean install
 
 lint:
 	poetry run python -m flake8 $(SRC)
@@ -35,13 +36,10 @@ lint:
 		--check-untyped-defs
 
 lint-strict:
-	flake8 $(SRC)
-	mypy $(SRC) --strict
+	poetry run python -m flake8 $(SRC)
+	poetry run python -m mypy $(SRC) --strict
 
 test:
-	poetry run python -m pytest -v -s tests/test_maps.py
+	poetry run python -m pytest
 
-re:
-	clean install
-
-.PHONY: run install debug clean lint lint-strict test
+.PHONY: install run easy medium hard chal debug clean re lint lint-strict test
