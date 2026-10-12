@@ -19,11 +19,11 @@ chal:
 	poetry run python3 $(NAME) ./maps/challenger/01_the_impossible_dream.txt
 
 install:
-	pipx install poetry
+	poetry sync || pipx install poetry && poetry sync
 	poetry install
 
 debug:
-	poetry run python3 -m pdb $(NAME) $(MAP)
+	poetry run python3 -m pdb $(NAME) $(CUSTOM_MAP)
 
 clean:
 	rm -rf __pycache__ */__pycache__ .mypy_cache .pytest_cache
@@ -40,5 +40,8 @@ lint-strict:
 
 test:
 	poetry run python -m pytest -v -s tests/test_maps.py
+
+re:
+	clean install
 
 .PHONY: run install debug clean lint lint-strict test
