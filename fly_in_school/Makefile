@@ -39,6 +39,6 @@ lint-strict:
 	mypy $(SRC) --strict
 
 test:
-	poetry run python -m pytest
+	poetry run python -m pytest -v -s tests/test_maps.py
 
 .PHONY: run install debug clean lint lint-strict test

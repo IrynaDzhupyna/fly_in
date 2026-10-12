@@ -84,6 +84,7 @@ class SimulationEngine:
         if self.is_finished:
             return
 
+        print(f"Turn{self.turn}")
         self.turn += 1
         movements: list[str] = []
         completed_transit: set[int] = set()

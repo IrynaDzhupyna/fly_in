@@ -6,7 +6,7 @@ from path_finder import PathFinder, PathFinderError
 from visual import Visualizer
 
 
-def main() -> None:
+def main() -> None:    
 
     if len(sys.argv) < 2:
         print("Usage: main.py <map_file>")
@@ -31,8 +31,8 @@ def main() -> None:
     engine = SimulationEngine(graph, best_path_set)
     engine.run()
 
-    # visual = Visualizer(graph, engine)
-    # visual.run()
+    visual = Visualizer(graph, engine)
+    visual.run()
 
 
 if __name__ == "__main__":

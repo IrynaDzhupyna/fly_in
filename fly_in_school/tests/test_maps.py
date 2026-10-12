@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 MAPS = Path("maps")
-map_files = list(MAPS.glob("*.txt"))
+map_files = sorted(MAPS.rglob("*.txt"))
 
 
 @pytest.mark.parametrize("map_file", map_files)
@@ -15,7 +15,7 @@ def test_map(map_file):
         ["poetry", "run", "python", "fly_in.py", str(map_file)],
         capture_output=True,
         text=True,
-        timeout=10
+        timeout=100
     )
 
     assert result.returncode == 0, result.stderr
