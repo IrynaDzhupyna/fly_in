@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 
 from graph import Graph
 from zone import Zone, Zone_role, Zone_type
-from connection import Connection
 from drone import Drone, Drone_state
 from path_finder import PathSet
 from drone_route import DroneRoute
@@ -81,30 +80,30 @@ class SimulationEngine:
             self.run_turn()
 
     def run_turn(self) -> None:
-        """Executes one simultaneous simulation turn."""
 
         if self.is_finished:
             return
 
         self.turn += 1
-
         movements: list[str] = []
+        completed_transit: set[int] = set()
 
-        # 1. Finish drones already in restricted transit.
         for route in self.drone_routes:
 
             if route.drone.state is Drone_state.IN_TRANSIT:
-                move = self._finish_transit(route)
-                movements.append(move)
 
-        # 2. Ask coordinator which new movements are legal.
-        approved_moves = self.coordinator.run()
+                completed_transit.add(route.drone.id)
 
-        # 3. Free departure zones for all approved movements.
+                transit_line = self._finish_transit(route)
+                movements.append(transit_line)
+
+        approved_moves = self.coordinator.run(
+            excluded_drones=completed_transit
+        )
+
         for move in approved_moves:
             move.drone.current_zone.decrease_capacity()
 
-        # 4. Execute approved movements.
         for move in approved_moves:
             result = self._execute_move(move)
             movements.append(result)

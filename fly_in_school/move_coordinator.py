@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 from graph import Graph
 from zone import Zone, Zone_role, Zone_type
-from drone import Drone, Drone_state
 from connection import Connection
+from drone import Drone, Drone_state
 from drone_route import DroneRoute
 
 
@@ -19,19 +19,30 @@ class NextMove:
 
 @dataclass
 class MoveCoordinator:
-    """Decides which drones can move during one turn.
+    """Plans legal drone movements for one simulation turn.
 
-    The coordinator only plans movements.
-    SimulationEngine executes approved movements.
+    Does not change zone occupancy or execute movements.
     """
 
     graph: Graph
     drone_routes: list[DroneRoute]
 
-    def run(self) -> list[NextMove]:
-        """Returns legal movements for the current turn."""
+    def run(
+        self,
+        excluded_drones: set[int] | None = None
+    ) -> list[NextMove]:
+        """Returns approved movements for the current turn.
 
-        next_moves = self._intended_movements()
+        excluded_drones contains IDs of drones that have
+        already completed a movement during this turn.
+        """
+
+        if excluded_drones is None:
+            excluded_drones = set()
+
+        next_moves = self._intended_movements(
+            excluded_drones
+        )
 
         approved_moves: list[NextMove] = []
 
@@ -50,6 +61,7 @@ class MoveCoordinator:
                 continue
 
             for possible_move in possible_moves:
+
                 if possible_move not in approved_moves:
                     approved_moves.append(possible_move)
 
@@ -66,8 +78,11 @@ class MoveCoordinator:
 
         return approved_moves
 
-    def _intended_movements(self) -> list[NextMove]:
-        """Finds the next desired movement of each drone."""
+    def _intended_movements(
+        self,
+        excluded_drones: set[int]
+    ) -> list[NextMove]:
+        """Finds the next desired movement of eligible drones."""
 
         next_moves: list[NextMove] = []
 
@@ -75,6 +90,12 @@ class MoveCoordinator:
 
             drone = route.drone
 
+            # Drone already moved during this turn.
+            if drone.id in excluded_drones:
+                continue
+
+            # Delivered and in-transit drones cannot start
+            # another movement.
             if (
                 drone.state is Drone_state.DELIVERED
                 or drone.state is Drone_state.IN_TRANSIT
@@ -117,7 +138,7 @@ class MoveCoordinator:
         approved_moves: list[NextMove],
         visited: set[int] | None = None
     ) -> list[NextMove] | None:
-        """Finds departures required to make a move possible."""
+        """Finds departures needed to make movement possible."""
 
         if visited is None:
             visited = set()
@@ -171,7 +192,7 @@ class MoveCoordinator:
         self,
         moves: list[NextMove]
     ) -> bool:
-        """Checks all capacities after simultaneous movement."""
+        """Checks capacities after simultaneous movements."""
 
         departures: dict[int, int] = {}
         arrivals: dict[int, int] = {}

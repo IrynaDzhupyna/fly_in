@@ -119,15 +119,17 @@ class SimulationEngine:
                 continue
 
             if not self._can_move_to(next_zone, connection, drone):
-                return
+                return None
 
             self._move_drone(drone, next_zone, connection)
 
             if drone.state is Drone_state.IN_TRANSIT:
                 return f"D{drone.id}-{connection.name}"
-            
+
             route.position += 1
             return f"D{drone.id}-{next_zone.name}"
+
+        return None
 
     def _can_move_to(self,
                      zone: Zone,
@@ -158,7 +160,7 @@ class SimulationEngine:
             drone.move_to_connection(connection)
 
         else:
-            
+
             zone_to.increase_capacity()
             drone.move_to_zone(zone_to)
 
@@ -174,7 +176,7 @@ class SimulationEngine:
 
         if current_connection is None:
             raise EngineError("Drone is not on connection")
-        
+
         move_to = route.path.zones[route.position + 1]
 
         current_connection.decrease_capacity(drone)
@@ -201,7 +203,6 @@ class SimulationEngine:
                 return False
 
         return True
-
 
     # remove when it is not needed
     # def info(self, drone: Drone) -> None:

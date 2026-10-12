@@ -45,7 +45,7 @@ class Zone:
     occupants: int = field(default=0, init=False)
     connections: list[str] = field(default_factory=list, init=False)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
     def increase_capacity(self) -> bool:
@@ -86,7 +86,7 @@ class Zone:
         self.reserved += 1
         return True
 
-    def release_reservation(self):
+    def release_reservation(self) -> None:
         """Release a previously reserved space"""
         if self.reserved <= 0:
             raise ZoneError(

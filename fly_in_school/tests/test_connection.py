@@ -1,9 +1,8 @@
-import pytest
-
 from connection import Connection
 from zone import Zone, Coordinates, Zone_type, Zone_role
 
-def test_connection():
+
+def test_connection() -> None:
     zone_a = Zone(
         name="Zone_A",
         coordinates=Coordinates(x=0, y=0),

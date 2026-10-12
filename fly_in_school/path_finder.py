@@ -168,7 +168,7 @@ class PathFinder:
             smallest_assignment = min(
                 assignments,
                 key=lambda a: a.path.cost + a.drones
-                )
+            )
             smallest_assignment.drones += 1
 
         return assignments

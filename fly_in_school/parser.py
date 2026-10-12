@@ -46,14 +46,14 @@ class Parser(BaseModel):
 
             if not line or line.startswith("#"):
                 continue
-            
+
             try:
                 if first_line and not line.startswith("nb_drones:"):
                     raise ParserError(
                         "'nb_drones' must be the first line"
                     )
                 first_line = False
-                
+
                 self._parse_line(line)
             except ParserError as error:
                 raise ParserError(f"Line {line_number}: {error}") from error
@@ -95,7 +95,7 @@ class Parser(BaseModel):
 
         if self.nb_drones is not None:
             raise ParserError("'nb_drones' defined more than once")
-        
+
         _, value = line.split(":", 1)
         value = value.strip()
 
@@ -184,7 +184,7 @@ class Parser(BaseModel):
 
         if not name:
             raise ParserError("Zone name cannot be empty")
-        
+
         if "-" in name:
             raise ParserError(f"Invalid zone name: '{name}'")
 
@@ -221,7 +221,7 @@ class Parser(BaseModel):
     def _parse_metadata(
             self, tokens: list[str],
             allowed_keys: set[str]
-            ) -> dict[str, str]:
+    ) -> dict[str, str]:
         """Parse and validate metadata."""
 
         if not tokens:
@@ -351,6 +351,7 @@ class Parser(BaseModel):
             end=ends[0],
         )
 
+
 Parser.model_rebuild(
-    _types_namespace={"Drone":Drone}
+    _types_namespace={"Drone": Drone}
 )

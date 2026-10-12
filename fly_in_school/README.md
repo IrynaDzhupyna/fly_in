@@ -1,5 +1,5 @@
-This project has been created as part
-of the 42 curriculum by <irdzhupy>
+*This project has been created as part
+of the 42 curriculum by <irdzhupy>*
 
 # Fly-In
 

@@ -34,7 +34,7 @@ class CoordinateTransformer:
         (
             self.min_x, self.max_x,
             self.min_y, self.max_y
-            ) = self._calculate_graph_bounds()
+        ) = self._calculate_graph_bounds()
         # nb of screen pixels representing 1 unit of distance
         # in the graph coordinates
         # how far is one zone/connection from another in pixels
@@ -119,14 +119,14 @@ class Visualizer:
         graph_drawer = GraphDrawer(
             self.graph,
             self.screen_coordinates
-            )
+        )
 
         drone_drawer = DroneDrawer(
             self.engine.drones,
             self.screen_coordinates
-            )
+        )
 
-        window = SimulationWindow(
+        SimulationWindow(
             graph_drawer,
             drone_drawer,
             self.engine
@@ -185,7 +185,7 @@ class GraphDrawer:
         for zone in self.graph.zones.values():
             x, y = self.coord_transformer.to_screen_coordinates(
                 zone.coordinates
-                )
+            )
 
             arcade.draw_circle_filled(
                 center_x=x,
@@ -205,10 +205,12 @@ class GraphDrawer:
 
         color = zone.color.upper()
 
-        try:
-            return getattr(arcade.color, color)
-        except AttributeError:
-            return COLOR_DEFAULT
+        color_value = getattr(arcade.color, color, None)
+
+        if isinstance(color_value, arcade.types.Color):
+            return color_value
+
+        return COLOR_DEFAULT
 
     def _create_zone_labels(self) -> list[arcade.Text]:
         """Creates a lable for each zone in the graph"""
@@ -328,7 +330,7 @@ class DroneDrawer:
         for zone, drones in drones_by_zone.items():
             x, y = self.coord_transformer.to_screen_coordinates(
                 zone.coordinates
-                )
+            )
             arcade.draw_text(
                 text=str(len(drones)),
                 x=x + 40,
@@ -367,7 +369,7 @@ class DroneDrawer:
                 zone_a.coordinates)
             x2, y2 = self.coord_transformer.to_screen_coordinates(
                 zone_b.coordinates)
-            
+
             x = (x1 + x2) / 2
             y = (y1 + y2) / 2
         else:

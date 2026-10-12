@@ -7,6 +7,7 @@ from zone import Zone
 if TYPE_CHECKING:
     from drone import Drone
 
+
 class ConnectionError(Exception):
     """Custom errors from Connection class."""
     pass

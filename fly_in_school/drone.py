@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -7,8 +6,6 @@ from enum import Enum
 from zone import Zone, Zone_role
 from connection import Connection
 
-if TYPE_CHECKING:
-    from connection import Connection
 
 class Drone_state(Enum):
     """ Describes the state of drones"""
@@ -39,7 +36,7 @@ class Drone:
         self.path.append(zone.name)
         self.turns_taken += 1
 
-    def move_to_connection(self, connection: Connection):
+    def move_to_connection(self, connection: Connection) -> None:
         self.current_connection = connection
         self.state = Drone_state.IN_TRANSIT
         self.turns_taken += 1

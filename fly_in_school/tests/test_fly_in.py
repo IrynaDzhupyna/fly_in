@@ -7,51 +7,27 @@ The tests use the public classes shown during development. Adjust only the
 Path/PathSet/PathAssignment constructor helper if your local API differs.
 """
 
-from dataclasses import dataclass
-
 import pytest
 
 from connection import Connection
 from drone import Drone, Drone_state
 from drone_route import DroneRoute
+from graph import Graph
 from move_coordinator import MoveCoordinator
+from path_finder import Path, PathAssignment, PathSet
 from simulation_engine import SimulationEngine
 from zone import Coordinates, Zone, Zone_role, Zone_type
 
 
-@dataclass
-class TestGraph:
-    """Minimal graph adapter for isolated coordinator/engine tests."""
-
-    start: Zone
-    end: Zone
-    nb_drones: int
-    links: list[Connection]
-
-    def neighbors(self, zone: Zone) -> list[tuple[Zone, Connection]]:
-        return [
-            (link.another_end(zone), link)
-            for link in self.links
-            if link.connected(zone)
-        ]
-
-
-@dataclass
-class TestPath:
-    zones: list[Zone]
-    cost: int = 0
-    moves: int = 0
-
-
-@dataclass
-class TestAssignment:
-    path: TestPath
-    drones: int
-
-
-@dataclass
-class TestPathSet:
-    assignments: list[TestAssignment]
+def make_graph(start: Zone, end: Zone, nb_drones: int,
+               links: list[Connection]) -> Graph:
+    """Builds a real Graph from the zones used by the given links."""
+    zones: dict[str, Zone] = {start.name: start, end.name: end}
+    for connection in links:
+        zones[connection.zone_a.name] = connection.zone_a
+        zones[connection.zone_b.name] = connection.zone_b
+    return Graph(nb_drones=nb_drones, zones=zones, connections=links,
+                 start=start, end=end)
 
 
 def zone(name: str, role: Zone_role = Zone_role.HUB,
@@ -74,12 +50,12 @@ def make_engine(paths: list[tuple[list[Zone], int]],
                 links: list[Connection]) -> SimulationEngine:
     start = paths[0][0][0]
     end = paths[0][0][-1]
-    graph = TestGraph(start, end, sum(n for _, n in paths), links)
+    graph = make_graph(start, end, sum(n for _, n in paths), links)
     assignments = [
-        TestAssignment(TestPath(nodes), count)
+        PathAssignment(Path(zones=nodes, cost=0, moves=0), count)
         for nodes, count in paths
     ]
-    return SimulationEngine(graph=graph, path_set=TestPathSet(assignments))
+    return SimulationEngine(graph=graph, path_set=PathSet(assignments))
 
 
 def run_limited(engine: SimulationEngine, limit: int = 30) -> int:
@@ -102,8 +78,9 @@ def make_coordinator(
                       current_zone=nodes[0])
         nodes[0].increase_capacity()
         drones.append(drone)
-        routes.append(DroneRoute(drone=drone, path=TestPath(nodes)))
-    graph = TestGraph(paths[0][0], paths[0][-1], len(paths), links)
+        routes.append(DroneRoute(
+            drone=drone, path=Path(zones=nodes, cost=0, moves=0)))
+    graph = make_graph(paths[0][0], paths[0][-1], len(paths), links)
     return MoveCoordinator(graph=graph, drone_routes=routes), drones
 
 
@@ -111,7 +88,9 @@ def test_linear_two_drones_three_turns() -> None:
     start = zone("start", Zone_role.START)
     a = zone("A")
     end = zone("end", Zone_role.END)
-    engine = make_engine([([start, a, end], 2)], [link(start, a), link(a, end)])
+    engine = make_engine(
+        [([start, a, end], 2)], [link(start, a), link(a, end)]
+    )
 
     assert run_limited(engine) == 3
     assert all(d.state is Drone_state.DELIVERED for d in engine.drones)
@@ -141,7 +120,6 @@ def test_restricted_end_requires_two_turns() -> None:
 
 
 def test_full_zone_can_be_entered_when_occupant_leaves() -> None:
-    start = zone("start", Zone_role.START)
     a = zone("A")
     b = zone("B")
     end = zone("end", Zone_role.END)
@@ -205,7 +183,6 @@ def test_three_drone_cycle_moves_together() -> None:
 def test_deadlock_returns_no_moves() -> None:
     a = zone("A")
     b = zone("B")
-    end = zone("end", Zone_role.END)
     coordinator, drones = make_coordinator(
         [[a, b]], [link(a, b)]
     )
@@ -241,3 +218,43 @@ def test_coordinator_does_not_move_drone() -> None:
     assert drones[0].current_zone is start
     assert start.occupants == 1
     assert end.occupants == 0
+
+
+def test_restricted_arrival_does_not_move_twice_same_turn(
+    capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A drone finishing restricted transit cannot leave again that turn."""
+    start = zone("start", Zone_role.START)
+    restricted = zone("r", kind=Zone_type.RESTRICTED)
+    goal = zone("goal", Zone_role.END)
+    engine = make_engine(
+        [([start, restricted, goal], 1)],
+        [link(start, restricted), link(restricted, goal)],
+    )
+    drone = engine.drones[0]
+    route = engine.drone_routes[0]
+
+    engine.run_turn()
+    first_output = capsys.readouterr().out
+    assert "D1-start-r" in first_output
+    assert drone.state is Drone_state.IN_TRANSIT
+    assert route.position == 0
+
+    engine.run_turn()
+    second_output = capsys.readouterr().out
+
+    # Arrival consumes the drone's one action for this turn.
+    assert "D1-r" in second_output
+    assert "D1-goal" not in second_output
+    assert second_output.count("D1-") == 1
+    assert drone.current_zone is restricted
+    assert drone.state is not Drone_state.DELIVERED
+    assert route.position == 1
+    assert restricted.occupants == 1
+    assert restricted.reserved == 0
+
+    engine.run_turn()
+    third_output = capsys.readouterr().out
+    assert "D1-goal" in third_output
+    assert drone.state is Drone_state.DELIVERED
+    assert engine.turn == 3
