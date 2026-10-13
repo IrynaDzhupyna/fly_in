@@ -63,10 +63,11 @@ class Parser(BaseModel):
     def _read_lines(self) -> list[str]:
         """ Opens map file and returns all lines as a list
             Raises ParserError if some problems occure"""
+        
         try:
             with open(self.file_name, "r") as file:
                 return file.readlines()
-        except OSError as error:
+        except (OSError, UnicodeDecodeError) as error:
             raise ParserError(
                 f"Could not open '{self.file_name}': {error}") from error
 

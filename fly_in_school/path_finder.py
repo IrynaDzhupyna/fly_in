@@ -22,14 +22,6 @@ class Path:
     cost: int
     moves: int
 
-    # REMOVE ME
-    # def info_path(self) -> None:
-    #     for zone in self.zones:
-    #         print(zone.name)
-
-    #     print(f"General cost: {self.cost}")
-    #     print(f"General moves: {self.moves}\n")
-
 
 @dataclass
 class PathAssignment:
@@ -138,6 +130,11 @@ class PathFinder:
         best_finishing_turn: int | None = None
 
         for path in sorted_by_cost:
+
+            if (best_finishing_turn is not None and
+                path.cost >= best_finishing_turn):
+                break
+
             candidate_paths = useful_paths.copy()
             candidate_paths.append(path)
 
@@ -145,7 +142,7 @@ class PathFinder:
             candidate_set = PathSet(assignments)
 
             if (best_finishing_turn is None or
-                    candidate_set.finishing_turn <= best_finishing_turn):
+                    candidate_set.finishing_turn < best_finishing_turn):
 
                 useful_paths.append(path)
                 best_finishing_turn = candidate_set.finishing_turn

@@ -1,6 +1,16 @@
 from collections.abc import Callable
 
 
+def try_input() -> str:
+    """Try except block for input"""
+    try:
+        choice = input("Enter your choice: ")
+
+    except (EOFError, KeyboardInterrupt):
+        return
+
+    return choice
+
 def run_menu(
     run_simulation: Callable[[str], object],
     run_visualization: Callable[[str], object],
@@ -15,7 +25,7 @@ def run_menu(
         print("2 - create visualization")
         print("0 - exit")
 
-        choice = input("Enter your choice: ")
+        choice = try_input()
 
         if choice == "0":
             print("Program was terminated. Good bye!")
@@ -31,7 +41,7 @@ def run_menu(
                 print("1 - yes")
                 print("2 - no")
 
-                choice = input("Enter your choice: ")
+                choice = try_input()
 
                 if choice == "1":
                     run_visualization(file_name)
@@ -39,7 +49,6 @@ def run_menu(
                     continue
                 else:
                     print("Invalid input. Please try again")
-
 
         elif choice == "2":
             file_name = choose_level()
@@ -63,7 +72,7 @@ def choose_level() -> str | None:
         print("4 - challenger")
         print("5 - back to main menu")
 
-        choice = input("Enter your choice: ")
+        choice = try_input()
 
         if choice == "1":
             print("\nCHOOSE EASY LEVEL MAP")
@@ -71,7 +80,7 @@ def choose_level() -> str | None:
             print("2 - simple fork")
             print("3 - basic capacity")
 
-            choice = input("Enter your choice: ")
+            choice = try_input()
 
             if choice == "1":
                 return "./maps/easy/01_linear_path.txt"
@@ -88,7 +97,7 @@ def choose_level() -> str | None:
             print("2 - circular loop")
             print("3 - priority puzzle")
 
-            choice = input("Enter your choice: ")
+            choice = try_input()
 
             if choice == "1":
                 return "./maps/medium/01_dead_end_trap.txt"
@@ -105,7 +114,7 @@ def choose_level() -> str | None:
             print("2 - capacity_hell")
             print("3 - ultimate challenge")
 
-            choice = input("Enter your choice: ")
+            choice = try_input()
 
             if choice == "1":
                 return "./maps/hard/01_maze_nightmare.txt"
