@@ -90,10 +90,10 @@ def test_mandatory_map_delivers_all_drones(map_file: Path) -> None:
     check_map(map_file)
 
 
-@pytest.mark.xfail(
-    run=False,
-    reason="optional map: path search takes ~45 s and drones get stuck",
-)
+# @pytest.mark.xfail(
+#     run=False,
+#     reason="optional map: path search takes ~45 s and drones get stuck",
+# )
 @pytest.mark.parametrize(
     "map_file", CHALLENGER_MAPS, ids=lambda path: path.stem
 )

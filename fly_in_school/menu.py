@@ -1,15 +1,16 @@
+import sys
 from collections.abc import Callable
 
 
 def try_input() -> str:
-    """Try except block for input"""
+    """Reads the user choice, exits gratefully"""
     try:
-        choice = input("Enter your choice: ")
+        return input("Enter your choice: ")
 
     except (EOFError, KeyboardInterrupt):
-        return
+        print("\nProgram was terminated. Good bye!")
+        sys.exit(0)
 
-    return choice
 
 def run_menu(
     run_simulation: Callable[[str], object],

@@ -61,9 +61,8 @@ def main() -> None:
     elif len(sys.argv) == 2:
         file_name = sys.argv[1]
 
-        run_simulation(file_name)
-
-        run_visualization(file_name)
+        if run_simulation(file_name):
+            run_visualization(file_name)
 
     else:
         print("Usage: python3 fly_in.py [map_file]")

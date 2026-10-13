@@ -131,8 +131,8 @@ class PathFinder:
 
         for path in sorted_by_cost:
 
-            if (best_finishing_turn is not None and
-                path.cost >= best_finishing_turn):
+            if (best_finishing_turn is not None
+                    and path.cost >= best_finishing_turn):
                 break
 
             candidate_paths = useful_paths.copy()
