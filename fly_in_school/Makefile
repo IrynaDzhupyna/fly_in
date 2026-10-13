@@ -7,6 +7,9 @@ install:
 	poetry install
 
 run:
+	poetry run python3 $(NAME)
+
+map:
 	poetry run python3 $(NAME) $(MAP)
 
 easy:
@@ -42,4 +45,4 @@ lint-strict:
 test:
 	poetry run python -m pytest
 
-.PHONY: install run easy medium hard chal debug clean re lint lint-strict test
+.PHONY: install run map easy medium hard chal debug clean re lint lint-strict test
