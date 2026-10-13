@@ -35,9 +35,7 @@ class CoordinateTransformer:
             self.min_x, self.max_x,
             self.min_y, self.max_y
         ) = self._calculate_graph_bounds()
-        # nb of screen pixels representing 1 unit of distance
-        # in the graph coordinates
-        # how far is one zone/connection from another in pixels
+
         self.scale = self._calculate_graph_scale()
 
     def _calculate_graph_bounds(self) -> tuple[int, int, int, int]:
@@ -70,7 +68,6 @@ class CoordinateTransformer:
         if graph_height == 0:
             return usable_width / graph_width
 
-        # how many pixels can 1 map unit occupy
         scale_x = usable_width / graph_width
         scale_y = usable_height / graph_height
 
@@ -85,11 +82,8 @@ class CoordinateTransformer:
         graph_x = coordinates.x - self.min_x
         graph_y = coordinates.y - self.min_y
 
-        # scale
         scaled_x = graph_x * self.scale
         scaled_y = graph_y * self.scale
-
-        # translate away from edge of the window using margin
 
         screen_x = scaled_x + self.map_margin
         screen_y = scaled_y + self.map_margin
@@ -254,12 +248,6 @@ class DroneVisual:
 
         self.text = self._create_text()
 
-    # @property
-    # def _x_move_left(self) -> float:
-    #     """Modifies x coordinate so the label is left/midle of the drone"""
-
-    #     return self.x - self.marge
-
     def _create_text(self) -> arcade.Text:
         """Draws ID of a drone"""
 
@@ -342,9 +330,6 @@ class DroneDrawer:
                 visible_drones = drones
             else:
                 visible_drones = [
-                    # drones[0],
-                    # drones[4],
-                    # drones[9],
                     drones[-1]
                 ]
 
@@ -460,8 +445,11 @@ class SimulationWindow(arcade.Window):
                 self.time_since_last_turn = 0.0
 
         elif key == arcade.key.RIGHT:
-                if not self.is_playing and not self.engine.is_finished:
-                    self.engine.run_turn()
+            if not self.is_playing and not self.engine.is_finished:
+                self.engine.run_turn()
+
+        elif key == arcade.key.ESCAPE:
+            self.close()
 
     def on_draw(self) -> None:
         """Calls all classes needed for visualization"""

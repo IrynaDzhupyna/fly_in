@@ -10,16 +10,15 @@ def run_menu(
     while True:
 
         print("\n==== WELCOME TO FLY-IN ====\n")
-        print("WHAT TO DO:")
-        print("Run simulation - 1")
-        print("Create visualization - 2")
-        print("Exit - 0")
-        print()
+        print("CHOOSE WHAT TO DO:")
+        print("1 - run simulation")
+        print("2 - create visualization")
+        print("0 - exit")
 
         choice = input("Enter your choice: ")
 
         if choice == "0":
-            print("Good bye!")
+            print("Program was terminated. Good bye!")
             break
 
         elif choice == "1":
@@ -27,6 +26,20 @@ def run_menu(
 
             if file_name is not None:
                 run_simulation(file_name)
+
+                print("SHOW VISUALIZATION")
+                print("1 - yes")
+                print("2 - no")
+
+                choice = input("Enter your choice: ")
+
+                if choice == "1":
+                    run_visualization(file_name)
+                elif choice == "2":
+                    continue
+                else:
+                    print("Invalid input. Please try again")
+
 
         elif choice == "2":
             file_name = choose_level()
@@ -43,24 +56,22 @@ def choose_level() -> str | None:
 
     while True:
 
-        print("CHOOSE MAP LEVEL")
-        print("easy - 1")
-        print("medium - 2")
-        print("hard - 3")
-        print("challenger - 4")
-        print("Back to main menu - 5")
+        print("\nCHOOSE MAP LEVEL")
+        print("1 - easy")
+        print("2 - medium")
+        print("3 - hard")
+        print("4 - challenger")
+        print("5 - back to main menu")
 
         choice = input("Enter your choice: ")
-        print()
 
         if choice == "1":
-            print("CHOOSE EASY LEVEL MAP")
-            print("linear path - 1")
-            print("simple fork - 2")
-            print("basic capacity - 3")
+            print("\nCHOOSE EASY LEVEL MAP")
+            print("1 - linear path")
+            print("2 - simple fork")
+            print("3 - basic capacity")
 
             choice = input("Enter your choice: ")
-            print()
 
             if choice == "1":
                 return "./maps/easy/01_linear_path.txt"
@@ -72,13 +83,12 @@ def choose_level() -> str | None:
                 print("Invalid input. Please try again")
 
         elif choice == "2":
-            print("CHOOSE MEDIUM LEVEL MAP")
-            print("dead end trap - 1")
-            print("circular loop - 2")
-            print("priority puzzle - 3")
+            print("\nCHOOSE MEDIUM LEVEL MAP")
+            print("1 - dead end trap")
+            print("2 - circular loop")
+            print("3 - priority puzzle")
 
             choice = input("Enter your choice: ")
-            print()
 
             if choice == "1":
                 return "./maps/medium/01_dead_end_trap.txt"
@@ -90,13 +100,12 @@ def choose_level() -> str | None:
                 print("Invalid input. Please try again")
 
         elif choice == "3":
-            print("CHOOSE HARD LEVEL MAP")
-            print("maze nightmare - 1")
-            print("capacity_hell - 2")
-            print("ultimate challenge - 3")
+            print("\nCHOOSE HARD LEVEL MAP")
+            print("1 - maze nightmare")
+            print("2 - capacity_hell")
+            print("3 - ultimate challenge")
 
             choice = input("Enter your choice: ")
-            print()
 
             if choice == "1":
                 return "./maps/hard/01_maze_nightmare.txt"
