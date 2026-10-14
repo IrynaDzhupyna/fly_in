@@ -36,20 +36,20 @@ def run_menu(
             file_name = choose_level()
 
             if file_name is not None:
-                run_simulation(file_name)
+                if run_simulation(file_name):
 
-                print("SHOW VISUALIZATION")
-                print("1 - yes")
-                print("2 - no")
+                    print("\nSHOW VISUALIZATION")
+                    print("1 - yes")
+                    print("2 - no")
 
-                choice = try_input()
+                    choice = try_input()
 
-                if choice == "1":
-                    run_visualization(file_name)
-                elif choice == "2":
-                    continue
-                else:
-                    print("Invalid input. Please try again")
+                    if choice == "1":
+                        run_visualization(file_name)
+                    elif choice == "2":
+                        continue
+                    else:
+                        print("Invalid input. Please try again")
 
         elif choice == "2":
             file_name = choose_level()

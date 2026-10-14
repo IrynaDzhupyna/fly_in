@@ -81,6 +81,9 @@ same zone can appear in several different paths:
 - blocked zones and zones that cannot reach the end are skipped, and a path
   never visits the same zone twice.
 
+**Classic A*** finds the optimal route and stops
+**AStar** remembers not only zones but the entire journey so far. 
+
 ### 3. Scheduler (`scheduler.py`): the core
 
 Deciding drone by drone at every turn makes drones wait for zones that

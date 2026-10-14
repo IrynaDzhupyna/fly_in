@@ -89,6 +89,8 @@ class AStar:
         found: list[Path] = []
         counter = 0
         # entries: (f, -priority_zones, counter, cost, zones)
+
+        # I AM HERE
         open_heap: list[tuple[int, int, int, int, list[Zone]]] = [
             (heuristic[start.name], 0, counter, 0, [start])
         ]

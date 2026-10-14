@@ -28,7 +28,7 @@ class Connection:
         return f"{self.zone_a.name}-{self.zone_b.name}"
 
     def __post_init__(self) -> None:
-        # i think this should be in the parser, not here
+    
         if self.zone_a == self.zone_b:
             raise ConnectionError(
                 "Connection cannot link a zone to itself")
