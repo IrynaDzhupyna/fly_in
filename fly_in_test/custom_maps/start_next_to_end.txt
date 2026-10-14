@@ -1,0 +1,11 @@
+# The start is directly connected to the end: every drone needs 1 turn,
+# but only 2 can use the connection per turn.
+nb_drones: 5
+
+start_hub: start 0 0 [color=green]
+end_hub: goal 1 0 [color=yellow]
+hub: detour 0 1 [color=blue]
+
+connection: start-goal [max_link_capacity=2]
+connection: start-detour
+connection: detour-goal
