@@ -82,7 +82,15 @@ same zone can appear in several different paths:
   never visits the same zone twice.
 
 **Classic A*** finds the optimal route and stops
-**AStar** remembers not only zones but the entire journey so far. 
+**AStar** remembers not only zones but the entire journey so far.
+
+**heapq** can give back the smallest item. 
+For cost it is what we want but if two zones have the same cost we need to choose the best path by max priority zones, so heapq will not work so to trick it we will treat each add every priority zone as -1 and the biggest negative number wins.
+
+**cheapest_first()**
+uses moves_from_start() to get excess to all zones distances from end to zone.
+
+candidates is a list of CandidatePath which starts from start and then 
 
 ### 3. Scheduler (`scheduler.py`): the core
 

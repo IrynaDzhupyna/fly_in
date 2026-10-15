@@ -14,6 +14,7 @@ from path import Path
 from zone import Zone, Zone_type
 
 
+
 class AStarError(Exception):
     """Custom error for the AStar class."""
     pass
