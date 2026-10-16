@@ -12,7 +12,7 @@ class PathFinderError(Exception):
 
 # How many of the cheapest paths the scheduler may choose from.
 # More paths = more options for spreading drones, but a slower schedule.
-MAX_CANDIDATE_PATHS = 40
+MAX_CANDIDATE_PATHS = 2
 
 
 @dataclass

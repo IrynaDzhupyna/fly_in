@@ -94,6 +94,8 @@ candidates is a list of CandidatePath which starts from start and then
 
 ### 3. Scheduler (`scheduler.py`): the core
 
+Before drone moves, it reserves the places and connections it will need at specific turn.
+
 Deciding drone by drone at every turn makes drones wait for zones that
 would actually be free by the time they arrive. Instead, the Scheduler
 plans the **complete timetable of every drone before the simulation

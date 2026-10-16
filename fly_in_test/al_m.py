@@ -28,7 +28,7 @@ class CandidatePath:
     zones: list[Zone] = field(compare=False)
 
 
-class AStarError:
+class AStarError(Exception):
     """Custom error for the AStar class"""
     pass
 
@@ -85,7 +85,6 @@ class AStar:
 
         # create the priority queue - heap
         found: list[Path] = []
-        counter = 0
 
         candidates: list[CandidatePath] = [CandidatePath(
             estimated_cost=moves_from_zones[start.name],
@@ -96,11 +95,66 @@ class AStar:
         ]
 
         expansions = 0
+        order = 0
 
         while candidates and len(found) < limit:
-            candidates.heappop(candidates)
+            current = heapq.heappop(candidates)
+            last_zone = candidates.zones[-1]
 
+            if last_zone is end:
+                found.append(Path(
+                    zones=candidates.zones,
+                    cost= current.cost,
+                    moves=len(current.zones - 1)
+                ))
+                continue
 
+            expansions += 1
+
+            if expansions > MAX_EXPANSIONS:
+                break
+
+            for neighbor in self.zone_neighbors:
+                # ignored blocked
+                if neighbor.type is Zone_type.BLOCKED:
+                    continue
+                # ignore that can not reach the end
+                if neighbor.name not in moves_from_zones:
+                    continue
+                # avoid cycles in the current path
+                if neighbor in current.zones:
+                    continue
+
+                # g(n): total cost from start
+                new_cost = current.cost + neighbor.type.movement_cost
+
+                # f(n) = g(n) + h(n)
+                new_estimated_cost = (
+                    new_cost + moves_from_zones[neighbor.name]
+                )
+
+                # Priority zones with ties
+                neg_priority = current.neg_priority_zones
+
+                if neighbor.type is Zone_type.PRIORITY:
+                    neg_priority -= 1
+
+                # preserve insertion order for remaining ties
+                order += 1
+
+                # adding new partial path to the heap
+                heapq.heappush(
+                    candidates,
+                    CandidatePath(
+                        estimated_cost=new_estimated_cost,
+                        neg_priority_zones=neg_priority,
+                        order=order,
+                        cost=new_cost,
+                        zones=current.zones + [neighbor]
+                    )
+                )
+
+        return found
 
     def _moves_to_end(self, end: Zone) -> dict[str, int]:
         """Reverse BFS from the goal:
@@ -126,36 +180,3 @@ class AStar:
                 queue.append(neighbor)
 
         return distances
-
-
-
-
-        
-        
-        
-
-    def _moves_to_end(self, end: Zone) -> dict[str, int]:
-        """Reverse BFS from the goal:
-        calculates the nb of moves from end to each zone
-        
-        Blocked and zones are not included.
-        """
-
-        distances: dict[str, int] = {end.name: 0}
-        queue: deque[Zone] = deque([end])
-
-        while queue:
-            zone = queue.popleft()
-
-            for neighbor in self.zone_neighbors[zone.name]:
-                if neighbor.name in distances:
-                    continue
-                if neighbor.type is Zone_type.BLOCKED:
-                    continue
-
-                distances[neighbor.name] = distances[zone.name] + 1
-                queue.append(neighbor)
-
-        return distances
-
-
