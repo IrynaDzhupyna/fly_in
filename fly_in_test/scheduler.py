@@ -1,24 +1,3 @@
-"""Plans the complete timetable of every drone before the simulation runs.
-
-Idea (reservation table):
-    Drones are planned one after another. For each drone, every candidate
-    path is tried with a start delay d = 0, 1, 2 ... : the drone waits d
-    turns in the start zone, then flies the path without stopping.
-    Each step is checked against a table of what earlier drones already
-    booked: how many drones are in each zone at the end of each turn, and
-    how many use each connection during each turn. The (path, delay) that
-    reaches the end zone first is kept and booked in the table.
-
-Why it is always valid:
-    every booking respects zone capacity (max_drones) and connection
-    capacity (max_link_capacity) at every turn, and a restricted zone is
-    always reached in exactly two turns (one on the connection, one to
-    arrive), so a drone never waits on a connection.
-
-Why it never gets stuck:
-    the start zone has no capacity limit, so a drone can always wait
-    there. Once all earlier drones are done, nothing blocks it any more.
-"""
 
 from dataclasses import dataclass, field
 
@@ -29,24 +8,13 @@ from zone import Zone, Zone_role, Zone_type
 
 
 class SchedulerError(Exception):
-    """Custom error for the Scheduler class."""
+    """Custom error for the Scheduler."""
     pass
 
 
 @dataclass
 class Step:
-    """One move of one drone during one turn.
-
-    Attributes:
-        turn: the turn in which the move happens (first turn is 1).
-        connection: the connection the drone uses.
-        zone: the zone the drone is in at the end of the turn, or None
-            if the drone is still on the connection towards a
-            restricted zone.
-        uses_link: False only for the second half of a restricted move:
-            the subject frees the connection on the arrival turn, so
-            another drone may start crossing it in that same turn.
-    """
+    """Represents one drone movement during one turn."""
 
     turn: int
     connection: Connection
@@ -55,7 +23,7 @@ class Step:
 
     @property
     def label(self) -> str:
-        """Output text of the move, without the drone ID."""
+        """Returns the name to print for this movement."""
 
         if self.zone is None:
             return self.connection.name
@@ -65,7 +33,7 @@ class Step:
 
 @dataclass
 class DroneSchedule:
-    """The full timetable of one drone."""
+    """Stores the planned movements of one drone."""
 
     drone_id: int
     path: Path
@@ -74,18 +42,18 @@ class DroneSchedule:
 
     @property
     def arrival_turn(self) -> int:
-        """Turn in which the drone reaches the end zone."""
+        """Returns the turn when the drone reaches the end."""
 
-        return self.steps[-1].turn if self.steps else 0
+        if not self.steps:
+            return 0
+
+        last_step = self.steps[-1]
+        return last_step.turn
 
     def step_at(self, turn: int) -> Step | None:
-        """Returns the move made in this turn, or None if the drone
-        does not move."""
+        """Finds the drone's movement for a given turn."""
 
-        index = turn - self.start_delay - 1
-
-        if 0 <= index < len(self.steps):
-            step = self.steps[index]
+        for step in self.steps:
             if step.turn == turn:
                 return step
 
@@ -94,137 +62,248 @@ class DroneSchedule:
 
 @dataclass
 class ReservationTable:
-    """Remembers what earlier drones already booked, turn by turn."""
+    """Tracks occupied zones and connections for each turn."""
 
-    zone_count: dict[tuple[str, int], int] = field(default_factory=dict)
-    link_count: dict[tuple[str, int], int] = field(default_factory=dict)
+    zone_count: dict[tuple[str, int], int] = field(
+        default_factory=dict
+    )
+
+    link_count: dict[tuple[str, int], int] = field(
+        default_factory=dict
+    )
 
     def fits(self, steps: list[Step]) -> bool:
-        """Checks if one more drone can make all these moves."""
+        """Checks whether all planned movements are possible."""
 
         for step in steps:
+
+            # Check connection capacity
             if step.uses_link:
-                key = (step.connection.name, step.turn)
-                if self.link_count.get(key, 0) + 1 > \
-                        step.connection.max_link_capacity:
+
+                link_name = step.connection.name
+                key = (link_name, step.turn)
+
+                occupied = self.link_count.get(key, 0)
+                capacity = step.connection.max_link_capacity
+
+                if occupied + 1 > capacity:
                     return False
 
+            # Check zone capacity
             zone = step.zone
-            if zone is not None and zone.role is Zone_role.HUB:
-                inside = self.zone_count.get((zone.name, step.turn), 0)
-                if inside + 1 > zone.max_drones:
-                    return False
+
+            if zone is None:
+                continue
+
+            if zone.role is not Zone_role.HUB:
+                continue
+
+            key = (zone.name, step.turn)
+
+            occupied = self.zone_count.get(key, 0)
+            capacity = zone.max_drones
+
+            if occupied + 1 > capacity:
+                return False
 
         return True
 
     def book(self, steps: list[Step]) -> None:
-        """Books all moves of one drone."""
+        """Reserves zones and connections for one drone."""
 
         for step in steps:
-            if step.uses_link:
-                link_key = (step.connection.name, step.turn)
-                self.link_count[link_key] = (
-                    self.link_count.get(link_key, 0) + 1
-                )
 
+            # Reserve the connection
+            if step.uses_link:
+
+                key = (step.connection.name, step.turn)
+
+                occupied = self.link_count.get(key, 0)
+
+                self.link_count[key] = occupied + 1
+
+            # Reserve the destination zone
             if step.zone is not None:
-                zone_key = (step.zone.name, step.turn)
-                self.zone_count[zone_key] = (
-                    self.zone_count.get(zone_key, 0) + 1
-                )
+
+                key = (step.zone.name, step.turn)
+
+                occupied = self.zone_count.get(key, 0)
+
+                self.zone_count[key] = occupied + 1
 
 
 @dataclass
 class Scheduler:
-    """Builds a timetable for every drone (see module docstring)."""
+    """Creates movement schedules for all drones."""
 
     graph: Graph
     paths: list[Path]
+
     table: ReservationTable = field(
-        init=False, default_factory=ReservationTable
+        init=False,
+        default_factory=ReservationTable
     )
+
     links: dict[tuple[str, str], Connection] = field(
-        init=False, default_factory=dict
+        init=False,
+        default_factory=dict
     )
 
     def __post_init__(self) -> None:
-        """Indexes connections by the names of both their zones."""
+        """Prepares connections for quick lookup."""
 
         if not self.paths:
-            raise SchedulerError("No paths to schedule drones on")
+            raise SchedulerError("No paths available")
 
         for connection in self.graph.connections:
-            a, b = connection.zone_a.name, connection.zone_b.name
-            self.links[(a, b)] = connection
-            self.links[(b, a)] = connection
+
+            zone_a = connection.zone_a.name
+            zone_b = connection.zone_b.name
+
+            # Connections work in both directions
+            self.links[(zone_a, zone_b)] = connection
+            self.links[(zone_b, zone_a)] = connection
 
     def run(self) -> list[DroneSchedule]:
-        """Plans all drones, in ID order, and returns their timetables."""
+        """Creates a schedule for every drone."""
 
         schedules: list[DroneSchedule] = []
 
         for drone_id in range(1, self.graph.nb_drones + 1):
+
+            # Find the best schedule for this drone
             schedule = self._plan_drone(drone_id)
+
+            # Reserve its movements
             self.table.book(schedule.steps)
+
+            # Save the schedule
             schedules.append(schedule)
 
         return schedules
 
     def _plan_drone(self, drone_id: int) -> DroneSchedule:
-        """Finds the (path, start delay) that arrives first."""
+        """Finds the earliest possible arrival for one drone."""
 
-        best: DroneSchedule | None = None
+        best_schedule: DroneSchedule | None = None
 
         for path in self.paths:
+
             delay = 0
+
+            # Try starting immediately
             steps = self._timeline(path, delay)
 
+            # If blocked, wait at the start and try again
             while not self.table.fits(steps):
+
                 delay += 1
                 steps = self._timeline(path, delay)
 
-            candidate = DroneSchedule(drone_id, path, delay, steps)
+            # We found a valid schedule for this path
+            candidate = DroneSchedule(
+                drone_id=drone_id,
+                path=path,
+                start_delay=delay,
+                steps=steps
+            )
 
-            if best is None or self._is_better(candidate, best):
-                best = candidate
+            # Compare with the best schedule found so far
+            if best_schedule is None:
+                best_schedule = candidate
 
-        if best is None:
-            raise SchedulerError(f"No schedule found for D{drone_id}")
+            elif self._is_better(candidate, best_schedule):
+                best_schedule = candidate
 
-        return best
+        if best_schedule is None:
+            raise SchedulerError(
+                f"No schedule found for drone {drone_id}"
+            )
+
+        return best_schedule
 
     def _timeline(self, path: Path, delay: int) -> list[Step]:
-        """All moves of a drone that waits `delay` turns in the start
-        zone and then flies `path` without stopping."""
+        """Builds all movements for a path and start delay."""
 
         steps: list[Step] = []
+
         turn = delay
 
-        for here, there in zip(path.zones, path.zones[1:]):
-            connection = self.links[(here.name, there.name)]
+        # Visit every pair of neighboring zones
+        for index in range(len(path.zones) - 1):
 
-            if there.type is Zone_type.RESTRICTED:
-                # turn 1: on the connection, turn 2: arrives in the zone
-                steps.append(Step(turn + 1, connection, None))
-                steps.append(Step(turn + 2, connection, there, False))
-                turn += 2
-            else:
-                steps.append(Step(turn + 1, connection, there))
+            current_zone = path.zones[index]
+            next_zone = path.zones[index + 1]
+
+            key = (current_zone.name, next_zone.name)
+            connection = self.links[key]
+
+            # Restricted zones require two turns
+            if next_zone.type is Zone_type.RESTRICTED:
+
+                # First turn: enter the connection
                 turn += 1
+
+                first_step = Step(
+                    turn=turn,
+                    connection=connection,
+                    zone=None,
+                    uses_link=True
+                )
+
+                steps.append(first_step)
+
+                # Second turn: arrive at the restricted zone
+                turn += 1
+
+                second_step = Step(
+                    turn=turn,
+                    connection=connection,
+                    zone=next_zone,
+                    uses_link=False
+                )
+
+                steps.append(second_step)
+
+            else:
+
+                # Normal and priority zones take one turn
+                turn += 1
+
+                step = Step(
+                    turn=turn,
+                    connection=connection,
+                    zone=next_zone,
+                    uses_link=True
+                )
+
+                steps.append(step)
 
         return steps
 
     @staticmethod
-    def _is_better(candidate: DroneSchedule, best: DroneSchedule) -> bool:
-        """Earlier arrival wins; on a tie, more priority zones, then the
-        cheaper path."""
+    def _is_better(
+        candidate: DroneSchedule,
+        best: DroneSchedule
+    ) -> bool:
+        """Compares two schedules and chooses the better one."""
 
-        return (
-            candidate.arrival_turn,
-            -candidate.path.priority_zones,
-            candidate.path.cost,
-        ) < (
-            best.arrival_turn,
-            -best.path.priority_zones,
-            best.path.cost,
-        )
+        # First priority: arrive earlier
+        if candidate.arrival_turn < best.arrival_turn:
+            return True
+
+        if candidate.arrival_turn > best.arrival_turn:
+            return False
+
+        # Second priority: more priority zones
+        if candidate.path.priority_zones > best.path.priority_zones:
+            return True
+
+        if candidate.path.priority_zones < best.path.priority_zones:
+            return False
+
+        # Third priority: lower path cost
+        if candidate.path.cost < best.path.cost:
+            return True
+
+        return False
