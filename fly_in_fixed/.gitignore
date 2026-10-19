@@ -1,0 +1,4 @@
+# ignore cache files
+__pycache__/
+.mypy_cache/
+.pytest_cache/

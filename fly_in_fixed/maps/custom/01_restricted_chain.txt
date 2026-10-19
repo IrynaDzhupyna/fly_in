@@ -1,0 +1,9 @@
+# Custom: a chain of two restricted zones (2-turn moves, in-flight output)
+nb_drones: 4
+start_hub: s 0 0
+hub: r1 1 0 [zone=restricted]
+hub: r2 2 0 [zone=restricted max_drones=2]
+end_hub: e 3 0
+connection: s-r1
+connection: r1-r2
+connection: r2-e
