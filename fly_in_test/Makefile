@@ -6,7 +6,7 @@ install:
 	@command -v poetry >/dev/null 2>&1 || pipx install poetry
 	poetry install
 
-run:
+run: install
 	poetry run python3 $(NAME)
 
 map:

@@ -12,7 +12,7 @@ medium:
 	poetry run python3 $(NAME) ./maps/medium/02_circular_loop.txt
 
 hard:
-	poetry run python3 $(NAME) ./maps/hard/01_maze_nightmare.txt
+	poetry run python3 $(NAME) ./maps/hard/03_ultimate_challenge.txt
 
 chal:
 	poetry run python3 $(NAME) ./maps/challenger/01_the_impossible_dream.txt
