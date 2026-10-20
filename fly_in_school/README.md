@@ -1,186 +1,241 @@
-*This project has been created as part of the 42 curriculum by irdzhupy*
+*This project has been created as part of the 42 curriculum by irdzhupy.*
 
-# Fly-In
-
-Fly-in is a system that efficiently routes a fleet of drones from central base (start) to a target location (end), while navigating this dynamic network under a set of strict constains and optimization goals.
+# Fly-in
 
 ## Description
 
-Main problem: 
-    deliver all drones from start to end in the fewest possible simulation turns while respecting movement constrains.
+Fly-in is a drone-routing simulation. A map describes a network of zones
+(hubs) linked by connections. All drones start in the start hub and must
+reach the end hub in the **fewest possible simulation turns**, while
+respecting every rule of the network:
 
-The main objective is to move all drones from the start zone to the end in the fewest possible simulation turns.
+- each zone holds at most `max_drones` drones (default 1; the start and end
+  hubs have no limit);
+- each connection carries at most `max_link_capacity` drones per turn
+  (default 1);
+- zone types change the cost of entering a zone: `normal` and `priority`
+  cost 1 turn, `restricted` costs 2 turns (the drone spends one turn on the
+  connection and must land on the next one), `blocked` cannot be entered;
+- all moves of a turn happen simultaneously, and a place freed during a
+  turn can be used in that same turn.
 
-The constraints:
-- No Graph Libraries
-- 100% Object-Oriented
-- Typesafe
-
-### Architecture & Design
-
-This project has modular, decoupled object-oriented architecture. It allows to isolate changes in one component from affecting others, making it is easier to modify, replace or extend parts.
-
-***Algorithm***
-It consist of three parts:
-- PathFinder - planning and optimization
-- MovementCoordinator - coordinates the movement of drones
-- SimulationEngine - execuding and scheduling
-
-PathFinder task:
-1. Find all possibel paths from start to end
-2. Select those that can reduce total finishing time
-3. Distribute drones between tham to minin=mize the estimated number of turns
-
-MovementCoordinator
-1. Which drones want to move
-2. Whether destination zones have capacity
-3. Whether connection has capacity
-4. Which drone must wait
-5. Whether simultanious departure make room for arrivals
-
-How it works:
-- it collects all intended movements of all drones
-- checks the capacity of zones the all want to move in and if it fine - make move by simulation engine
-
-
-Simulation engine
-1. Assigns drones to the path
-2. Checks if the movement are legal
-3. Exectes turns one by one
-4. Handles the restricted zones movemt
-5. Prevent collisions and deadlock
-6. Sheduling the movents to shared zones if such appears
-7. Calculates the real finishing time
-8. Track if all drones have arrived
-
-
-**Restricted movement**
-D1 enters the connection towards B. B zone got a reservation so no other drones can enter this. D1 enters B, reservation is released and + 1 occupant added.
-
-If the next zone is Restricted, we check the connection capacity and move the drone there on next turn. On Turn 3 we move the drone towards the Restricte zone and reduce the occupants the of connection.
-
-if one of drones are on connction toward the zone, other drones should not enter this zone. So we have 'reserved' in zone to book a place for our drone in transit.
-
-## Parser
-
-**parser.py**
-
-The parser reads and validates the input map file and converts it into a `Graph` used by the rest of the program.
-
-It handles:
-
-- `nb_drones` and ensures it is defined first and has a valid positive value.
-- Start, end, and regular hub definitions with integer coordinates.
-- Unique zone names and required naming restrictions.
-- Zone metadata such as `zone`, `color`, and `max_drones`, including default values.
-- Connection definitions between previously defined zones.
-- Connection metadata such as `max_link_capacity`.
-- Duplicate, self-referencing, malformed, or unknown connections.
-- Comments and empty lines.
-- Metadata fields in any valid order.
-
-Invalid input raises a `ParserError` with the line number and a description of the problem. The parser stops immediately instead of creating a partially valid graph.
-
-The parser is covered by pytest tests for valid input, invalid syntax, metadata, default values, capacities, naming rules, connections, and common edge cases.
-
-**drone.py**
-**zone.py**
-#### Responsibilities:
-- stores its coordinates
-**connection**
-#### Responsibilities:
-- connects Zone A <-> Zone B
-**graph**
-
+The program parses the map, plans a timetable for every drone, prints the
+simulation turn by turn and can replay it in a graphical window.
 
 ## Instructions
 
+Requirements: Python 3.10+ and [Poetry](https://python-poetry.org/).
 
-### Prerequisites
-
-- Python 3.10 or later
-- pip
-
-### Installation
-
-The project includes Makefile to automate the setup
-
-```
-# Clone the repository
-git clone <repository> fly_in
-cd fly_in
+```bash
+make install            # install dependencies (pydantic, arcade, flake8, mypy)
+make run                # interactive menu: choose a level and a map
+make map                # run the default map (maps/easy/01_linear_path.txt)
+make map MAP=maps/hard/03_ultimate_challenge.txt
+make debug              # run the default map under pdb
+make lint               # flake8 + mypy with the flags required by the subject
+make lint-strict        # flake8 + mypy --strict
+make clean              # remove caches
 ```
 
-Install project dependencies isolated in a virtual environment
+Without Make:
 
-```
-make install
-```
-
-
-### Running the Simulator
-
-Run the main script using the defult map :
-
-# CHOOSE DEFAULT MAP LATER
-
-```
-make run
+```bash
+poetry run python3 fly_in.py                 # menu
+poetry run python3 fly_in.py <map_file>      # simulate, then open the window
 ```
 
-You can also choose the map from given with rules:
-1. **maps/easy/01_linear_path.txt**
+With a map argument the program prints the simulation in the terminal and
+then opens the visualization. Exit codes: `0` success, `1` invalid or
+unsolvable map, `2` wrong usage.
 
-```make easy```
+### Map format
 
-2. **maps/medium/01_dead_end_trap.txt**
-
-```make medium```
-
-3. **maps/hard/01_maze_nightmare.txt**
-
-```make hard``` 
-
-
-<!-- 
-
-### Valid Path
-- has start and end zone
-- no deadends
-
-## How it works
-
-- detects one all valid paths
-- checks if any zone in Path is shared with another Path
-- if yes: merge them -->
-
-## Usage Exampe
-
-### Example Input (maps/easy/01_linear_path.txt)
-
-nb_drones: 2
-
+```
+nb_drones: 4                                   # must be the first line
 start_hub: start 0 0 [color=green]
-end_hub: goal 0 3 [color=yellow]
-hub: waypoint1 0 1 [color=blue]
-hub: waypoint2 0 2 [color=blue]
+hub: junction 1 0 [color=yellow max_drones=2]
+hub: roof 2 1 [zone=restricted]                # normal | priority | restricted | blocked
+end_hub: goal 3 0 [color=red]
+connection: start-junction [max_link_capacity=2]
+connection: junction-roof
+connection: roof-goal
+```
 
-connection: start-waypoint1
-connection: waypoint1-waypoint2
-connection: waypoint2-goal
+Lines starting with `#` and empty lines are ignored. Any other error stops
+the program with the line number and the cause, for example
+`Error: Line 3: Invalid zone type: 'lava'`.
 
-### Expected Output
+## Example
 
-D0-<waypoint1>
-D0-<waypoint2> D1-<waypoint1>
-D0-<goal> D1-<waypoint2>
-D0-<goal> D1-<goal>
+Input, `maps/easy/02_simple_fork.txt` (4 drones):
 
+```
+nb_drones: 4
+start_hub: start 0 0
+hub: junction 1 0 [max_drones=2]
+hub: path_a 2 1
+hub: path_b 2 -1
+end_hub: goal 3 0
+connection: start-junction [max_link_capacity=2]
+connection: junction-path_a
+connection: junction-path_b
+connection: path_a-goal
+connection: path_b-goal
+```
 
-### Visualization
-** visualization.py**
-The visualization is done with Arcade.
+Output (4 turns, the optimum):
+
+```
+D1-junction D2-junction
+D1-path_a D2-path_b D3-junction D4-junction
+D1-goal D2-goal D3-path_a D4-path_b
+D3-goal D4-goal
+```
+
+A drone flying toward a restricted zone is printed with the connection name
+for the first of its two turns (`maps/custom/01_restricted_chain.txt`):
+
+```
+D1-s-r1
+D1-r1 D2-s-r1
+D1-r1-r2 D2-r1 D3-s-r1
+D1-r2 D2-r1-r2 D3-r1 D4-s-r1
+D1-e D2-r2 D3-r1-r2 D4-r1
+D2-e D3-r2 D4-r1-r2
+D3-e D4-r2
+D4-e
+```
+
+## Algorithm choices and implementation strategy
+
+The work is split into three independent steps:
+
+```
+Parser -> Graph -> PathFinder (A*) -> Scheduler (reservation table) -> SimulationEngine
+```
+
+### 1. Candidate routes: A* (`algorithm.py`, `path_finder.py`)
+
+- The cost of a route is the sum of the costs of the zones it enters
+  (1 for normal/priority, 2 for restricted). Blocked zones are skipped.
+- The heuristic is the number of hops from a zone to the end, computed once
+  with a reverse BFS from the end. Every hop costs at least 1 turn, so the
+  heuristic never overestimates and A* returns the cheapest routes first.
+  The BFS also removes zones that cannot reach the end at all (dead ends).
+- A* does not stop at the first route: it keeps popping the priority queue
+  until it has collected `MAX_CANDIDATE_PATHS` (5) loop-free routes, cheapest
+  first. Several routes let drones spread out when one route is congested.
+- Tie-breaks between candidates with the same estimated cost:
+  1. more `priority` zones first (the subject says they should be preferred);
+  2. deeper partial routes first, so a map with many equal-cost routes
+     (a big grid) finds complete routes quickly instead of exploring them
+     breadth-first;
+  3. insertion order, so results are the same on every run.
+- `MAX_EXPANSIONS` is a safety limit so that no map can make the search run
+  forever.
+
+### 2. Timetables: reservation table (`scheduler.py`)
+
+This is the idea of *cooperative pathfinding*: drones are planned one after
+another, and every planned drone books the places it will use in a table
+indexed by `(place, turn)`.
+
+- For a route and a start delay, `_timeline` builds the drone's moves turn by
+  turn. A move into a restricted zone becomes two steps: turn *t* on the
+  connection, turn *t+1* in the zone.
+- `ReservationTable.fits` checks every step against what earlier drones
+  booked: zone occupancy on the arrival turn (`max_drones`, ignored for start
+  and end) and connection usage on the crossing turn (`max_link_capacity`).
+  A restricted connection is only booked for its first turn, because the
+  subject frees it on the turn the drone lands.
+- For each drone and each candidate route, the scheduler increases the start
+  delay until the timeline fits, then keeps the route with the earliest
+  arrival (ties: more priority zones, then the cheaper route).
+- Drones only wait in the start hub (unlimited capacity). After take-off a
+  drone never stops, so it is in a zone exactly on the turn it arrives there,
+  and checking that one turn is enough to guarantee the capacity rules.
+  Because every drone is booked before the next one is planned, two drones
+  can never deadlock.
+
+Planning everything up front means the turn-by-turn rules (simultaneous
+moves, space freed in the same turn) are satisfied by construction: a zone
+is counted as occupied only by the drones that are in it at the end of the
+turn.
+
+### 3. Replay (`simulation_engine.py`)
+
+The engine replays the timetables one turn at a time. It first removes every
+moving drone from its old place, then puts it in the new one (simultaneous
+moves), prints one line of moves per turn, and checks after each turn that no
+zone holds more drones than allowed. A drone that reaches the end is marked
+delivered and no longer moves.
+
+### Results on the provided maps
+
+| Map | Drones | Turns | Optimum |
+| --- | --- | --- | --- |
+| easy/01 linear path | 2 | 4 | 4 |
+| easy/02 simple fork | 4 | 4 | 4 |
+| easy/03 basic capacity | 4 | 4 | 4 |
+| medium/01 dead end trap | 5 | 8 | 8 |
+| medium/02 circular loop | 6 | 10 | 10 |
+| medium/03 priority puzzle | 5 | 6 | 6 |
+| hard/01 maze nightmare | 8 | 13 | 13 |
+| hard/02 capacity hell | 12 | 16 | 16 |
+| hard/03 ultimate challenge | 15 | 26 | 26 |
+| challenger/01 the impossible dream | 25 | 43 | 43 |
+
+Every map is solved in under a second.
+
+## Visual representation
+
+The visualization uses [Arcade](https://api.arcade.academy/). It opens after
+the terminal output, or from option 2 of the menu.
+
+- Zones are drawn as circles in the colour given in the map (yellow when no
+  colour is given) with their name, and connections as lines.
+- The map is scaled separately on X and Y to fill the window, so a long flat
+  map like the challenger stays readable; circles and labels shrink when
+  zones are close together.
+- Every drone is a `D<ID>` label inside its zone; a drone flying toward a
+  restricted zone is drawn halfway along its connection.
+- Each zone shows how many drones it holds. On crowded maps only one label
+  per zone is drawn and the counter shows the rest.
+- The top of the window shows the current turn, the total number of turns,
+  the state (playing, paused, finished) and the moves of the last turn,
+  exactly as printed in the terminal.
+- Controls: `SPACE` play/pause (one turn per second), `RIGHT` next turn,
+  `ESC` close the window.
+
+Seeing the drones move makes it easy to check the rules visually: queues in
+front of capacity-1 zones, drones splitting across parallel routes, and the
+extra turn spent on restricted connections.
 
 ## Resources
-- [gitignore](https://git-scm.com/docs/gitignore)
-- [README manual](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
+
+- [A* search algorithm, Wikipedia](https://en.wikipedia.org/wiki/A*_search_algorithm)
+- [Introduction to A*, Red Blob Games](https://www.redblobgames.com/pathfinding/a-star/introduction.html)
+- David Silver, *Cooperative Pathfinding* (AIIDE 2005), the reservation
+  table approach used by the scheduler
+- [Breadth-first search, Wikipedia](https://en.wikipedia.org/wiki/Breadth-first_search)
+- [Python `heapq`](https://docs.python.org/3/library/heapq.html) and
+  [`dataclasses`](https://docs.python.org/3/library/dataclasses.html) documentation
+- [Arcade documentation](https://api.arcade.academy/)
+- [Pydantic documentation](https://docs.pydantic.dev/)
+- [mypy](https://mypy.readthedocs.io/) and [flake8](https://flake8.pycqa.org/) documentation
+
+### How AI was used
+
+Claude (Anthropic) was used as a reviewer and assistant:
+
+- reviewing the code against the subject and listing what was missing;
+- finding bugs after the move to the A* + scheduler design (typos, a missing
+  `main()` call);
+- writing an independent checker that replays the printed output against the
+  subject rules, plus edge-case maps (large grid, disconnected graph,
+  restricted chain, invalid files);
+- drafting this README.
+
+The overall architecture (parser, graph model, A*, reservation-table
+scheduler, engine and visualization) was designed and written by me. Every
+AI-suggested change was read, tested and understood before it was kept.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 from zone import Zone, Zone_role
@@ -11,7 +11,6 @@ class Drone_state(Enum):
     """ Describes the state of drones"""
 
     AVAILABLE = "available"
-    WAITING = "waiting"
     IN_TRANSIT = "in_transit"
     DELIVERED = "delivered"
 
@@ -24,28 +23,27 @@ class Drone:
     state: Drone_state
     current_zone: Zone
     current_connection: Connection | None = None
-    # path stores the zones drone came from(history)
-    # we can remove it later
-    path: list[str] = field(default_factory=list, init=False)
+
     turns_taken: int = 0
 
     def move_to_zone(self, zone: Zone) -> None:
+        """Moves drone to the next zone"""
+
         self.current_zone = zone
         self.current_connection = None
         self.state = Drone_state.AVAILABLE
-        self.path.append(zone.name)
         self.turns_taken += 1
 
     def move_to_connection(self, connection: Connection) -> None:
+        """Moves drones on connection if the next zone is restricted,
+         marks drone as in_transit"""
+
         self.current_connection = connection
         self.state = Drone_state.IN_TRANSIT
         self.turns_taken += 1
 
-    # what happens when drone moved but not delvered
     def mark_delivered(self) -> None:
+        """Marks drone as delivered if it arrived to end zone"""
+
         if self.current_zone.role is Zone_role.END:
             self.state = Drone_state.DELIVERED
-
-    def drone_info(self) -> None:
-        print(f"Drone: D{self.id}\nState: {self.state}\n"
-              f"Current zone: {self.current_zone}")

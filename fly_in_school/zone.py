@@ -3,12 +3,16 @@ from enum import Enum
 
 
 class Zone_role(Enum):
+    """Role of a zone in the network: where drones start, end or pass."""
+
     START = "start"
     END = "end"
     HUB = "hub"
 
 
 class Zone_type(Enum):
+    """Zone type from the map metadata, decides the movement cost."""
+
     NORMAL = "normal"
     BLOCKED = "blocked"
     RESTRICTED = "restricted"
@@ -16,23 +20,22 @@ class Zone_type(Enum):
 
     @property
     def movement_cost(self) -> int:
+        """Turns needed to move into a zone of this type."""
+
         return 2 if self is Zone_type.RESTRICTED else 1
 
 
 @dataclass
 class Coordinates:
+    """Position of a zone on the map, used only for drawing."""
+
     x: int
     y: int
 
 
-class ZoneError(Exception):
-    """Custom error for Zone class"""
-    pass
-
-
 @dataclass
 class Zone:
-    """ A Zone hub in the drone network"""
+    """A Zone hub in the drone network"""
 
     name: str
     coordinates: Coordinates
@@ -41,61 +44,24 @@ class Zone:
     color: str | None = None
     max_drones: int = 1
 
-    reserved: int = 0
     occupants: int = field(default=0, init=False)
-    connections: list[str] = field(default_factory=list, init=False)
 
     def __hash__(self) -> int:
+        """Hashes Zone 'name',
+        so it could be used as a key in dict or set"""
+
         return hash(self.name)
 
-    def increase_capacity(self) -> bool:
-        """Increases occupants by 1"""
+    def add_drone(self) -> None:
+        """A drone arrives in the zone.
 
-        if not self.has_capacity():
-            return False
+        Capacity is not checked here: the Scheduler already planned
+        every move, and the engine verifies all zones after each turn."""
 
         self.occupants += 1
-        return True
 
-    def decrease_capacity(self) -> bool:
-        """Decreases occupants by 1"""
+    def remove_drone(self) -> None:
+        """A drone leaves the zone."""
 
-        if self.occupants - 1 >= 0:
+        if self.occupants > 0:
             self.occupants -= 1
-            return True
-
-        return False
-
-    def has_capacity(self) -> bool:
-        """Checks if zone has capacity for one drone"""
-
-        if self.type is Zone_type.BLOCKED:
-            return False
-
-        if self.role is Zone_role.START or self.role is Zone_role.END:
-            return True
-
-        return self.occupants + self.reserved < self.max_drones
-
-    def reserve_capacity(self) -> bool:
-        """Reserves space for a drone in transit"""
-
-        if not self.has_capacity():
-            return False
-
-        self.reserved += 1
-        return True
-
-    def release_reservation(self) -> None:
-        """Release a previously reserved space"""
-        if self.reserved <= 0:
-            raise ZoneError(
-                "No reservation to cancel"
-            )
-
-        self.reserved -= 1
-
-    def info_zone(self) -> None:
-        print(f"Name: {self.name}")
-        print(f"Role: {self.role}")
-        print(f"Type: {self.type}")

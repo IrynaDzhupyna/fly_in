@@ -1,246 +1,171 @@
-"""A* search for the Fly-in drone network.
-
-Finds the cheapest route from one zone to another, where entering a zone
-costs ``zone.type.movement_cost`` turns (1 for normal and priority zones,
-2 for restricted zones) and blocked zones can never be entered.
-"""
-
-from __future__ import annotations
-
-import heapq
-from collections import deque
 from dataclasses import dataclass, field
+from collections import deque
+import heapq
 
 from graph import Graph
-from path_finder import Path
 from zone import Zone, Zone_type
+from path import Path
 
 
-class AStarError(Exception):
-    """Custom error for the AStar class."""
-    pass
+# Safety limit so huge map can never make the search run forever
+MAX_EXPANSIONS = 200_000
+
+
+@dataclass(order=True)
+class CandidatePath:
+    """One partial path waiting to be explored.
+
+    Python compares fields from top to bottom,
+    so the order of the first three fields is the sorting rule:
+        1. lowest estimated total cost (A* rule)
+        2. more priority zones (stored negative, so more = smaller)
+        3. added earlier (keeps the same every run)"""
+
+    estimated_cost: int
+    neg_priority_zones: int
+    neg_cost: int
+    order: int
+    cost: int = field(compare=False)
+    zones: list[Zone] = field(compare=False)
 
 
 @dataclass
 class AStar:
-    """A* pathfinder over the zone graph.
-
-    Heuristic:
-        h(zone) = the number of moves from ``zone`` to the goal, ignoring
-        costs (computed once with a reverse BFS from the goal). Every move
-        costs at least 1 turn, so h never overestimates the real cost
-        (admissible) and drops by at most 1 per move (consistent). This
-        means A* returns an optimal path and never has to reopen a zone.
-        Map coordinates are not used: they say nothing about how many
-        moves separate two zones, so a distance heuristic would not be
-        admissible.
+    """A* search over the graph.
 
     Tie-breaks between equal-cost paths:
-        1. the path with more priority zones wins (the subject says they
-           should be preferred);
-        2. otherwise the path found first wins (insertion counter), which
-           keeps the result deterministic.
+        1. more priority zones first
+        2. otherwise the path found first
     """
 
     graph: Graph
-    adjacency: dict[str, list[Zone]] = field(init=False, default_factory=dict)
+    zone_neighbors: dict[str, list[Zone]] = field(
+        init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
-        """Builds the adjacency list once, so each expansion is O(degree)."""
+        """Builds the adjacency list once, so each expansion is fast"""
 
         for zone in self.graph.zones.values():
-            self.adjacency[zone.name] = []
+            self.zone_neighbors[zone.name] = []
 
         for connection in self.graph.connections:
-            self.adjacency[connection.zone_a.name].append(connection.zone_b)
-            self.adjacency[connection.zone_b.name].append(connection.zone_a)
+            zone_a = connection.zone_a
+            zone_b = connection.zone_b
+            self.zone_neighbors[zone_a.name].append(zone_b)
+            self.zone_neighbors[zone_b.name].append(zone_a)
 
-    def find_path(
-            self,
-            start: Zone | None = None,
-            goal: Zone | None = None,
-            excluded: set[str] | None = None) -> Path:
-        """Returns the cheapest path from start to goal.
+    def cheapest_paths(self, limit: int) -> list[Path]:
+        """Returns up to limit simple paths from start to end,
+        cheapest first.
 
-        Args:
-            start: zone to leave from (default: the graph's start hub).
-            goal: zone to reach (default: the graph's end hub).
-            excluded: names of zones the path must not pass through.
+        Remembers not only zones but the whole journey"""
 
-        Returns:
-            A Path with its zones, total cost in turns and number of moves.
+        start = self.graph.start
+        end = self.graph.end
+        if limit <= 0:
+            return []
 
-        Raises:
-            AStarError: if the goal cannot be reached.
-        """
+        moves_from_zones: dict[str, int] = self._moves_to_end(end)
 
-        start_zone = start if start is not None else self.graph.start
-        goal_zone = goal if goal is not None else self.graph.end
-        banned = excluded if excluded is not None else set()
+        if start.name not in moves_from_zones:
+            return []
 
-        heuristic = self._hop_distances(goal_zone, banned)
+        # create the priority queue - heap
+        found: list[Path] = []
 
-        if start_zone.name not in heuristic:
-            raise AStarError(
-                f"No path from '{start_zone.name}' to '{goal_zone.name}'"
-            )
-
-        best_cost: dict[str, int] = {start_zone.name: 0}
-        best_priority: dict[str, int] = {start_zone.name: 0}
-        came_from: dict[str, Zone] = {}
-        closed: set[str] = set()
-
-        counter = 0
-        # entries: (f, -priority_zones, counter, g, zone)
-        open_heap: list[tuple[int, int, int, int, Zone]] = [
-            (heuristic[start_zone.name], 0, counter, 0, start_zone)
+        candidates: list[CandidatePath] = [CandidatePath(
+            estimated_cost=moves_from_zones[start.name],
+            neg_priority_zones=0,
+            neg_cost=0,
+            order=0,
+            cost=0,
+            zones=[start])
         ]
 
-        while open_heap:
-            _f, neg_priority, _order, cost, zone = heapq.heappop(open_heap)
+        expansions = 0
+        order = 0
 
-            if zone.name in closed:
-                continue
-            closed.add(zone.name)
+        while candidates and len(found) < limit:
+            current = heapq.heappop(candidates)
+            last_zone = current.zones[-1]
 
-            if zone is goal_zone:
-                return self._build_path(came_from, start_zone, goal_zone,
-                                        cost)
-
-            for neighbor in self.adjacency[zone.name]:
-                if not self._can_enter(neighbor, banned, goal_zone):
-                    continue
-                if neighbor.name in closed:
-                    continue
-
-                new_cost = cost + neighbor.type.movement_cost
-                new_priority = -neg_priority + self._is_priority(neighbor)
-
-                if not self._is_better(neighbor.name, new_cost, new_priority,
-                                       best_cost, best_priority):
-                    continue
-
-                best_cost[neighbor.name] = new_cost
-                best_priority[neighbor.name] = new_priority
-                came_from[neighbor.name] = zone
-
-                counter += 1
-                heapq.heappush(open_heap, (
-                    new_cost + heuristic[neighbor.name],
-                    -new_priority,
-                    counter,
-                    new_cost,
-                    neighbor,
+            if last_zone is end:
+                found.append(Path(
+                    zones=current.zones,
+                    cost=current.cost,
+                    moves=len(current.zones) - 1
                 ))
+                continue
 
-        raise AStarError(
-            f"No path from '{start_zone.name}' to '{goal_zone.name}'"
-        )
+            expansions += 1
 
-    def find_disjoint_paths(self, max_paths: int) -> list[Path]:
-        """Returns up to max_paths paths that share no intermediate zone.
-
-        Runs A* repeatedly and excludes the zones used by the paths found
-        so far. Paths come out cheapest first. This is a greedy method:
-        it gives good parallel routes quickly, but is not guaranteed to
-        find the largest possible set of disjoint paths.
-        """
-
-        paths: list[Path] = []
-        used: set[str] = set()
-
-        while len(paths) < max_paths:
-            try:
-                path = self.find_path(excluded=used)
-            except AStarError:
+            if expansions > MAX_EXPANSIONS:
                 break
 
-            paths.append(path)
-            middle = path.zones[1:-1]
+            for neighbor in self.zone_neighbors[last_zone.name]:
+                # ignored blocked
+                if neighbor.type is Zone_type.BLOCKED:
+                    continue
+                # ignore that can not reach the end
+                if neighbor.name not in moves_from_zones:
+                    continue
+                # avoid cycles in the current path
+                if neighbor in current.zones:
+                    continue
 
-            if not middle:
-                # start is connected directly to end: no other path
-                # can do better, and excluding nothing would loop forever
-                break
+                # g(n): total cost from start
+                new_cost = current.cost + neighbor.type.movement_cost
 
-            used.update(zone.name for zone in middle)
+                # f(n) = g(n) + h(n)
+                new_estimated_cost = (
+                    new_cost + moves_from_zones[neighbor.name]
+                )
 
-        if not paths:
-            raise AStarError("No valid paths were found")
+                # Priority zones with ties
+                neg_priority = current.neg_priority_zones
 
-        return paths
+                if neighbor.type is Zone_type.PRIORITY:
+                    neg_priority -= 1
 
-    def _hop_distances(
-            self,
-            goal: Zone,
-            banned: set[str]) -> dict[str, int]:
-        """Reverse BFS from the goal: fewest moves from each zone to it.
+                # preserve insertion order for remaining ties
+                order += 1
 
-        Zones missing from the result cannot reach the goal at all.
+                # adding new partial path to the heap
+                heapq.heappush(
+                    candidates,
+                    CandidatePath(
+                        estimated_cost=new_estimated_cost,
+                        neg_priority_zones=neg_priority,
+                        neg_cost=-new_cost,
+                        order=order,
+                        cost=new_cost,
+                        zones=current.zones + [neighbor]
+                    )
+                )
+
+        return found
+
+    def _moves_to_end(self, end: Zone) -> dict[str, int]:
+        """Reverse BFS from the goal:
+        calculates the nb of moves from end to each zone
+        ignoring movement cost.
+
+        Blocked zones are not included.
         """
 
-        distances: dict[str, int] = {goal.name: 0}
-        queue: deque[Zone] = deque([goal])
+        distances: dict[str, int] = {end.name: 0}
+        queue: deque[Zone] = deque([end])
 
         while queue:
             zone = queue.popleft()
 
-            for neighbor in self.adjacency[zone.name]:
+            for neighbor in self.zone_neighbors[zone.name]:
                 if neighbor.name in distances:
                     continue
                 if neighbor.type is Zone_type.BLOCKED:
-                    continue
-                if neighbor.name in banned:
                     continue
 
                 distances[neighbor.name] = distances[zone.name] + 1
                 queue.append(neighbor)
 
         return distances
-
-    @staticmethod
-    def _can_enter(zone: Zone, banned: set[str], goal: Zone) -> bool:
-        """Checks if a drone may ever enter this zone on the search."""
-
-        if zone.type is Zone_type.BLOCKED:
-            return False
-
-        return zone is goal or zone.name not in banned
-
-    @staticmethod
-    def _is_priority(zone: Zone) -> int:
-        """Returns 1 for a priority zone, 0 otherwise."""
-
-        return 1 if zone.type is Zone_type.PRIORITY else 0
-
-    @staticmethod
-    def _is_better(
-            name: str,
-            cost: int,
-            priority: int,
-            best_cost: dict[str, int],
-            best_priority: dict[str, int]) -> bool:
-        """Checks if a new route to a zone beats the best one known."""
-
-        if name not in best_cost or cost < best_cost[name]:
-            return True
-
-        return cost == best_cost[name] and priority > best_priority[name]
-
-    @staticmethod
-    def _build_path(
-            came_from: dict[str, Zone],
-            start: Zone,
-            goal: Zone,
-            cost: int) -> Path:
-        """Walks back from the goal to rebuild the found path."""
-
-        zones: list[Zone] = [goal]
-        current = goal
-
-        while current is not start:
-            current = came_from[current.name]
-            zones.append(current)
-
-        zones.reverse()
-        return Path(zones=zones, cost=cost, moves=len(zones) - 1)

@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
-from collections import deque
+from dataclasses import dataclass
 
-from zone import Zone, Zone_type
 from graph import Graph
+from path import Path
+from algorithm import AStar
 
 
 class PathFinderError(Exception):
@@ -10,162 +10,34 @@ class PathFinderError(Exception):
     pass
 
 
-@dataclass
-class Path:
-    """
-    DATA OBJECT
-    - Represents one discovered route
-    - Stores its zones
-    - Stores callculated by PathFinder costs """
-
-    zones: list[Zone]
-    cost: int
-    moves: int
-
-
-@dataclass
-class PathAssignment:
-    """Assigns a path to a number of drones
-    and calculates the number of turns it will take to finish"""
-
-    path: Path
-    drones: int = 0
-
-    @property
-    def turns(self) -> int:
-        """Calculates the turns for assigned drones"""
-
-        if self.drones == 0:
-            return 0
-
-        return self.path.cost + self.drones - 1
-
-    def info_assignment(self) -> None:
-        print(f"Drones assigned: {self.drones}")
-
-
-@dataclass
-class PathSet:
-    """ Represents the set of paths (without conflicts)
-    with drones distribution"""
-
-    assignments: list[PathAssignment]
-    finishing_turn: int = field(init=False, default=0)
-
-    def __post_init__(self) -> None:
-        """Calculates the finishing turns of the set"""
-        self.finishing_turn = max(
-            assignment.turns for assignment in self.assignments)
+MAX_CANDIDATE_PATHS = 5
 
 
 @dataclass
 class PathFinder:
-    """Finds the best paths to deliver all drones
-    from start to finish in fewest turns"""
+    """Finds the candidate routes the drones can use.
+
+    The PathFinder decides:
+        - which routes exists
+        - how much they cost
+
+    When each drone flies is decided later by Scheduler.
+    """
 
     graph: Graph
 
-    def run(self) -> PathSet:
-        """The main for all path finding mechanism"""
+    def run(self) -> list[Path]:
+        """Returns:
+            the cheapest paths from start to end, cheapest first.
 
-        all_paths: list[Path] = self._find_all_paths()
-        sorted_by_cost: list[Path] = sorted(
-            all_paths, key=lambda path: path.cost)
+        Raises:
+            PathFinderError: if the end cannot be reached."""
 
-        if not sorted_by_cost:
+        paths = AStar(self.graph).cheapest_paths(MAX_CANDIDATE_PATHS)
+
+        if not paths:
             raise PathFinderError(
-                "No valid paths were found"
+                f"No valid path from '{self.graph.start.name}'"
+                f" to '{self.graph.end.name}'"
             )
-
-        paths_to_use: list[Path] = self._find_paths_to_use(sorted_by_cost)
-        return PathSet(
-            self._assign_drones(paths_to_use)
-        )
-
-    def _find_all_paths(self) -> list[Path]:
-        """Finds all possible paths in graph"""
-
-        start = Path(
-            zones=[self.graph.start],
-            cost=0,
-            moves=0
-        )
-
-        paths_to_explore: deque[Path] = deque([start])
-        all_paths: list[Path] = []
-
-        while paths_to_explore:
-
-            path = paths_to_explore.popleft()
-            current_zone = path.zones[-1]
-
-            if current_zone == self.graph.end:
-                all_paths.append(path)
-                continue
-
-            for zone, _connection in self.graph.neighbors(current_zone):
-
-                if (
-                    zone in path.zones or
-                        zone.type is Zone_type.BLOCKED):
-                    continue
-
-                new_zones = path.zones.copy()
-                new_zones.append(zone)
-
-                new_path = Path(
-                    zones=new_zones,
-                    cost=path.cost + zone.type.movement_cost,
-                    moves=path.moves + 1
-                )
-
-                paths_to_explore.append(new_path)
-
-        return all_paths
-
-    def _find_paths_to_use(self, sorted_by_cost: list[Path]) -> list[Path]:
-        """Finds the most efficient paths to assign drones to"""
-
-        useful_paths: list[Path] = []
-        best_finishing_turn: int | None = None
-
-        for path in sorted_by_cost:
-
-            if (best_finishing_turn is not None
-                    and path.cost >= best_finishing_turn):
-                break
-
-            candidate_paths = useful_paths.copy()
-            candidate_paths.append(path)
-
-            assignments = self._assign_drones(candidate_paths)
-            candidate_set = PathSet(assignments)
-
-            if (best_finishing_turn is None or
-                    candidate_set.finishing_turn < best_finishing_turn):
-
-                useful_paths.append(path)
-                best_finishing_turn = candidate_set.finishing_turn
-
-        return useful_paths
-
-    def _assign_drones(
-        self, combination: list[Path]
-    ) -> list[PathAssignment]:
-        """ Distributes drones between paths"""
-
-        assignments: list[PathAssignment] = []
-
-        for path in combination:
-            assignment = PathAssignment(path)
-            assignments.append(assignment)
-
-        for _ in range(self.graph.nb_drones):
-
-            smallest_assignment = min(
-                assignments,
-                key=lambda a: a.path.cost + a.drones
-            )
-            smallest_assignment.drones += 1
-
-        return assignments
+        return paths

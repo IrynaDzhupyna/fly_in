@@ -1,4 +1,4 @@
-import arcade
+import arcade  # type: ignore[import-not-found]
 from dataclasses import dataclass, field
 
 from graph import Graph
@@ -14,13 +14,21 @@ WINDOW_HEIGHT = 720
 MAP_MARGIN = 100
 
 ZONE_RADIUS = 50
+MIN_ZONE_RADIUS = 10
 COLOR_DEFAULT = arcade.color.YELLOW
 
 TURN_DURATION = 1.0
 
+KEY_HINTS = "SPACE play/pause   RIGHT next turn   ESC close"
+
 
 class CoordinateTransformer:
-    """Transforms coordinates from graph to screen"""
+    """Transforms coordinates from graph to screen.
+
+    X and Y get their own scale, so a long, flat map (like the challenger,
+    23 units wide and 4 high) uses the whole window instead of a thin
+    strip. Zone circles and labels shrink when zones are close together.
+    """
 
     def __init__(
             self, graph: Graph,
@@ -36,7 +44,27 @@ class CoordinateTransformer:
             self.min_y, self.max_y
         ) = self._calculate_graph_bounds()
 
-        self.scale = self._calculate_graph_scale()
+        self.scale_x, self.scale_y = self._calculate_graph_scale()
+
+    @property
+    def zone_radius(self) -> float:
+        """Circle radius: at most ZONE_RADIUS, and small enough that
+        neighbouring zones (one map unit apart) do not overlap."""
+
+        spacing = min(self.scale_x, self.scale_y)
+        return max(MIN_ZONE_RADIUS, min(ZONE_RADIUS, spacing * 0.35))
+
+    @property
+    def crowded(self) -> bool:
+        """True when zones are too close for full-size circles."""
+
+        return self.zone_radius < ZONE_RADIUS
+
+    @property
+    def label_font_size(self) -> int:
+        """Zone name font size, smaller when zones are close together."""
+
+        return 16 if not self.crowded else 9
 
     def _calculate_graph_bounds(self) -> tuple[int, int, int, int]:
         """Calculates the min/max for X and Y of the graph"""
@@ -49,44 +77,53 @@ class CoordinateTransformer:
 
         return (min_x, max_x, min_y, max_y)
 
-    def _calculate_graph_scale(self) -> float:
-        """Calculates the scale for the graph so
-        all the objects have space"""
+    def _calculate_graph_scale(self) -> tuple[float, float]:
+        """Pixels per map unit, separately for X and Y.
+
+        A flat dimension (all zones on one line) gets the other
+        dimension's scale, so circles keep a sensible size.
+        """
 
         graph_width = self.max_x - self.min_x
         graph_height = self.max_y - self.min_y
 
-        if graph_width == 0 and graph_height == 0:
-            return 1.0
-
         usable_width = self.window_width - self.map_margin * 2
         usable_height = self.window_height - self.map_margin * 2
 
-        if graph_width == 0:
-            return usable_height / graph_height
+        scale_x = usable_width / graph_width if graph_width else 0.0
+        scale_y = usable_height / graph_height if graph_height else 0.0
 
-        if graph_height == 0:
-            return usable_width / graph_width
+        if not scale_x and not scale_y:
+            return (1.0, 1.0)
+        if not scale_x:
+            scale_x = scale_y
+        if not scale_y:
+            scale_y = scale_x
 
-        scale_x = usable_width / graph_width
-        scale_y = usable_height / graph_height
-
-        return min(scale_x, scale_y)
+        return (scale_x, scale_y)
 
     def to_screen_coordinates(
             self,
             coordinates: Coordinates) -> tuple[float, float]:
         """Takes a zone coordinates from graph
-        and transforms it to screen coordinates"""
+        and transforms it to screen coordinates.
+        A flat map is centred in the window."""
 
-        graph_x = coordinates.x - self.min_x
-        graph_y = coordinates.y - self.min_y
+        if self.max_x == self.min_x:
+            screen_x = self.window_width / 2
+        else:
+            screen_x = (
+                (coordinates.x - self.min_x) * self.scale_x
+                + self.map_margin
+            )
 
-        scaled_x = graph_x * self.scale
-        scaled_y = graph_y * self.scale
-
-        screen_x = scaled_x + self.map_margin
-        screen_y = scaled_y + self.map_margin
+        if self.max_y == self.min_y:
+            screen_y = self.window_height / 2
+        else:
+            screen_y = (
+                (coordinates.y - self.min_y) * self.scale_y
+                + self.map_margin
+            )
 
         return (screen_x, screen_y)
 
@@ -148,7 +185,6 @@ class GraphDrawer:
 
         self._draw_connections()
         self._draw_zones()
-        # self._drone_counter()
 
     def _draw_connections(self) -> None:
         """Draws the connections"""
@@ -184,7 +220,7 @@ class GraphDrawer:
             arcade.draw_circle_filled(
                 center_x=x,
                 center_y=y,
-                radius=ZONE_RADIUS,
+                radius=self.coord_transformer.zone_radius,
                 color=self._get_zone_color(zone)
             )
 
@@ -211,22 +247,34 @@ class GraphDrawer:
 
         zones_names: list[arcade.Text] = []
 
-        label_marge = 10
+        label_marge = 6
+        radius = self.coord_transformer.zone_radius
+        crowded = self.coord_transformer.crowded
 
         for zone in self.graph.zones.values():
             x, y = self.coord_transformer.to_screen_coordinates(
                 zone.coordinates
             )
-            dist_to_zone = y + ZONE_RADIUS + label_marge
+
+            # when zones are close, neighbours alternate their name
+            # above / below the circle so the names do not overlap
+            below = crowded and (zone.coordinates.x + zone.coordinates.y) % 2
+            if below:
+                label_y = y - radius - label_marge
+                anchor_y = "top"
+            else:
+                label_y = y + radius + label_marge
+                anchor_y = "baseline"
 
             label = arcade.Text(
                 text=zone.name,
                 x=x,
-                y=dist_to_zone,
+                y=label_y,
                 color=arcade.color.BLACK,
-                font_size=16,
+                font_size=self.coord_transformer.label_font_size,
                 font_name="Arial",
                 anchor_x="center",
+                anchor_y=anchor_y,
             )
             zones_names.append(label)
 
@@ -310,6 +358,11 @@ class DroneDrawer:
         drones_by_zone: dict[Zone, list[Drone]] = {}
 
         for drone in self.drones:
+            if drone.state is Drone_state.IN_TRANSIT:
+                # drawn halfway along its connection, not in a zone
+                self._draw_drone(drone, 0, 1)
+                continue
+
             if drone.current_zone not in drones_by_zone:
                 drones_by_zone[drone.current_zone] = []
 
@@ -319,14 +372,18 @@ class DroneDrawer:
             x, y = self.coord_transformer.to_screen_coordinates(
                 zone.coordinates
             )
+            offset = self.coord_transformer.zone_radius * 0.8
             arcade.draw_text(
                 text=str(len(drones)),
-                x=x + 40,
-                y=y + 40,
+                x=x + offset,
+                y=y + offset,
                 color=arcade.color.BLACK,
-                font_size=14
+                font_size=14 if offset > 30 else 10
             )
-            if len(drones) <= 5:
+            # crowded map: one label per zone, the number shows the rest
+            limit = 1 if self.coord_transformer.crowded else 5
+
+            if len(drones) <= limit:
                 visible_drones = drones
             else:
                 visible_drones = [
@@ -334,10 +391,11 @@ class DroneDrawer:
                 ]
 
             for index, drone in enumerate(visible_drones):
-                self._draw_drone(drone, index)
+                self._draw_drone(drone, index, len(visible_drones))
 
-    def _draw_drone(self, drone: Drone, index: int) -> None:
-        """Draws one drone"""
+    def _draw_drone(self, drone: Drone, index: int, count: int) -> None:
+        """Draws one drone; `index` of `count` drones shown in its zone,
+        laid out in rows of three centred on the zone"""
 
         if drone.state is Drone_state.IN_TRANSIT:
             connection = drone.current_connection
@@ -367,8 +425,9 @@ class DroneDrawer:
 
             column = index % columns
             row = index // columns
+            in_row = min(columns, count - row * columns)
 
-            x += (column - 1) * x_spacing
+            x += (column - (in_row - 1) / 2) * x_spacing
             y -= row * y_spacing
 
         visual = self.drone_visuals[drone.id]
@@ -407,13 +466,27 @@ class SimulationWindow(arcade.Window):
         engine: SimulationEngine
     ) -> None:
 
+        super().__init__(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
+
         self.graph_drawer = graph_drawer
         self.drone_drawer = drone_drawer
         self.engine = engine
 
         self.is_playing = False
         self.time_since_last_turn = 0.0
-        super().__init__(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
+
+        self.turn_text = arcade.Text(
+            "", x=20, y=WINDOW_HEIGHT - 30,
+            color=arcade.color.BLACK, font_size=16, bold=True
+        )
+        self.moves_text = arcade.Text(
+            "", x=20, y=WINDOW_HEIGHT - 55,
+            color=arcade.color.BLACK, font_size=11
+        )
+        self.hints_text = arcade.Text(
+            KEY_HINTS, x=20, y=15,
+            color=arcade.color.BLACK, font_size=11
+        )
 
         arcade.set_background_color(arcade.csscolor.CORNFLOWER_BLUE)
 
@@ -449,6 +522,7 @@ class SimulationWindow(arcade.Window):
                 self.engine.run_turn()
 
         elif key == arcade.key.ESCAPE:
+            self.set_visible(False)
             self.close()
 
     def on_draw(self) -> None:
@@ -457,3 +531,24 @@ class SimulationWindow(arcade.Window):
         self.clear()
         self.graph_drawer.draw()
         self.drone_drawer.draw()
+        self._draw_info()
+
+    def _draw_info(self) -> None:
+        """Draws the turn counter, the last moves and the key hints."""
+
+        status = "finished" if self.engine.is_finished else (
+            "playing" if self.is_playing else "paused"
+        )
+        self.turn_text.text = (
+            f"Turn {self.engine.turn} / {self.engine.total_turns}"
+            f"   ({status})"
+        )
+
+        moves = self.engine.last_line
+        if len(moves) > 150:
+            moves = moves[:147] + "..."
+        self.moves_text.text = moves
+
+        self.turn_text.draw()
+        self.moves_text.draw()
+        self.hints_text.draw()

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field  # type: ignore[import-not-found]
 
 from zone import Coordinates, Zone, Zone_role, Zone_type
 from connection import Connection
@@ -26,18 +26,21 @@ CONNECTION_METADATA = {
 
 
 class ParserError(Exception):
-    """ Raised when the input map file is malformed"""
+    """Raised when the input map file is malformed"""
+    pass
 
 
 class Parser(BaseModel):
-    """ Reads a map file and builds the drone count and Graph from it"""
+    """Reads a map file and builds the drone count and Graph from it."""
     file_name: str
     nb_drones: int | None = None
     zones: dict[str, Zone] = Field(default_factory=dict)
     connections: list[Connection] = Field(default_factory=list)
 
     def parse(self) -> Graph:
-        """ Parses lines from map file sets nb_drones and returns Graph"""
+        """Parses lines from map file sets nb_drones.
+
+        Returns: Graph"""
 
         first_line = True
 
@@ -56,26 +59,32 @@ class Parser(BaseModel):
 
                 self._parse_line(line)
             except ParserError as error:
-                raise ParserError(f"Line {line_number}: {error}") from error
+                raise ParserError(f"Line {line_number}: {error}")
 
         return self._build_graph()
 
     def _read_lines(self) -> list[str]:
-        """ Opens map file and returns all lines as a list
-            Raises ParserError if some problems occure"""
+        """Opens map file
+
+        Returns:
+            - all lines as a list
+
+        Raises:
+            - ParserError if the file cannot be opened or decoded"""
 
         try:
             with open(self.file_name, "r") as file:
                 return file.readlines()
         except (OSError, UnicodeDecodeError) as error:
             raise ParserError(
-                f"Could not open '{self.file_name}': {error}") from error
+                f"Could not open '{self.file_name}': {error}")
 
     def _parse_line(self, line: str) -> None:
-        """ Dispatch a line to the appropriate parser"""
+        """Dispatch a line to the appropriate parser"""
 
         if ":" not in line:
-            raise ParserError(f"Invalid line format: '{line}'")
+            raise ParserError(
+                f"Invalid line format: '{line}'")
 
         prefix = line.split(":", 1)[0].strip()
 
@@ -89,19 +98,22 @@ class Parser(BaseModel):
             self._parse_zone(line)
 
         else:
-            raise ParserError(f"Unrecognized line format: '{line}'")
+            raise ParserError(
+                f"Unrecognized line format: '{line}'")
 
     def _parse_nb_drones(self, line: str) -> None:
-        """Parse the number of drones"""
+        """Parse the number of drones."""
 
         if self.nb_drones is not None:
-            raise ParserError("'nb_drones' defined more than once")
+            raise ParserError(
+                "'nb_drones' defined more than once")
 
         _, value = line.split(":", 1)
         value = value.strip()
 
         if not value:
-            raise ParserError("'nb_drones' cannot be empty")
+            raise ParserError(
+                "'nb_drones' cannot be empty")
 
         self.nb_drones = self._parse_positive_int(value, "nb_drones")
 
@@ -169,11 +181,9 @@ class Parser(BaseModel):
                 max_link_capacity=max_link_capacity,
             )
         )
-        zone_a.connections.append(zone_b_name)
-        zone_b.connections.append(zone_a_name)
 
     def _parse_zone(self, line: str) -> None:
-        """Parse a zone definiton"""
+        """Parse a zone definition"""
         prefix, content = line.split(":", 1)
         tokens = content.strip().split(maxsplit=3)
 
@@ -181,7 +191,7 @@ class Parser(BaseModel):
             raise ParserError("Usage: <zone_name> <x> <y>")
 
         name, x, y = tokens[:3]
-        metadata_tockens = tokens[3:]
+        metadata_tokens = tokens[3:]
 
         if not name:
             raise ParserError("Zone name cannot be empty")
@@ -199,7 +209,7 @@ class Parser(BaseModel):
                 f"Invalid coordinates: x='{x}', y='{y}'") from error
 
         metadata = self._parse_metadata(
-            metadata_tockens, allowed_keys=ZONE_METADATA)
+            metadata_tokens, allowed_keys=ZONE_METADATA)
 
         role = ZONE_PREFIXES[prefix]
 
@@ -235,7 +245,7 @@ class Parser(BaseModel):
 
         if not metadata.startswith("[") or not metadata.endswith("]"):
             raise ParserError(f"Invalid metadata format: '{metadata}'")
-        # removing []
+
         metadata = metadata[1:-1].strip()
 
         if not metadata:

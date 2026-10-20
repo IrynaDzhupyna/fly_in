@@ -1,28 +1,16 @@
 NAME = fly_in.py
 SRC = .
-MAP = custom_maps/test_branching_conflicts.txt
+MAP = maps/easy/01_linear_path.txt
 
 install:
 	@command -v poetry >/dev/null 2>&1 || pipx install poetry
 	poetry install
 
-run:
+run: install
 	poetry run python3 $(NAME)
 
 map:
 	poetry run python3 $(NAME) $(MAP)
-
-easy:
-	poetry run python3 $(NAME) maps/easy/02_simple_fork.txt
-
-medium:
-	poetry run python3 $(NAME) maps/medium/02_circular_loop.txt
-
-hard:
-	poetry run python3 $(NAME) maps/hard/01_maze_nightmare.txt
-
-chal:
-	poetry run python3 $(NAME) maps/challenger/01_the_impossible_dream.txt
 
 debug:
 	poetry run python3 -m pdb $(NAME) $(MAP)
@@ -45,4 +33,4 @@ lint-strict:
 test:
 	poetry run python -m pytest
 
-.PHONY: install run map easy medium hard chal debug clean re lint lint-strict test
+.PHONY: install run map debug clean re lint lint-strict test

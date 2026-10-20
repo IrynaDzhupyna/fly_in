@@ -25,28 +25,49 @@ class Connection:
 
     @property
     def name(self) -> str:
+        """Connection name as written in the map, e.g. 'a-b'."""
+
         return f"{self.zone_a.name}-{self.zone_b.name}"
 
     def __post_init__(self) -> None:
-        # i think this should be in the parser, not here
+        """Validates connection after it is created.
+        Raises:
+            - ConnectionError if both ends are the same zone,
+            or max_link_capacity is less than 1"""
+
         if self.zone_a == self.zone_b:
             raise ConnectionError(
                 "Connection cannot link a zone to itself")
 
         if self.max_link_capacity < 1:
-            raise ConnectionError("Max link capacity should be 1 or more")
+            raise ConnectionError(
+                "Max link capacity should be 1 or more")
 
     def connected(self, zone: Zone) -> bool:
+        """Check if zone is connected to another zone
+        Returns:
+            - False if Zone is not connected"""
+
         return zone is self.zone_a or zone is self.zone_b
 
     def another_end(self, zone: Zone) -> Zone:
+        """Returns:
+            - another end of connection (zone)
+        Raises:
+            - ConnectionError
+            if zone in parameters is not a part of this connection"""
+
         if zone is self.zone_a:
             return self.zone_b
+
         if zone is self.zone_b:
             return self.zone_a
+
         raise ConnectionError(f"'{zone.name}' is not part of this connection")
 
     def has_capacity(self) -> bool:
+        """True if one more drone can be on the connection."""
+
         return len(self.occupants) < self.max_link_capacity
 
     def increase_capacity(self, drone: Drone) -> None:
